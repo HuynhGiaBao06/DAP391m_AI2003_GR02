@@ -216,3 +216,137 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# HMDA: dữ liệu/artifact local; chỉ giữ README và marker thư mục
+# Gitignore không gỡ file đã được theo dõi hoặc xóa lịch sử Git.
+/data/**
+!/data/**/
+!/data/**/README.md
+!/data/**/.gitkeep
+/artifacts/**
+!/artifacts/**/
+!/artifacts/**/README.md
+!/artifacts/**/.gitkeep
+/logs/**
+!/logs/**/
+!/logs/**/README.md
+!/logs/**/.gitkeep
+
+# CSV ở mọi vị trí, kể cả chữ hoa, file nén hoặc bản sao
+*.[cC][sS][vV]
+*.[cC][sS][vV].*
+
+# Database local, dump và log runtime; giữ migration SQL nguồn
+*.sqlite
+*.sqlite3
+*.sqlite-journal
+*.sqlite3-journal
+*.db
+*.db-journal
+*.dump
+*.backup
+*.log.*
+
+# Hồ sơ agent local ở mọi cấp thư mục
+**/agent/**
+**/agents/**
+**/.agent/**
+**/.agents/**
+**/.codex/**
+**/.claude/**
+**/.cursor/**
+**/.aider*
+
+# Cho phép hai file đặc biệt trong agent/
+!agent/
+!agent/RESEARCH_LOG.md
+!agent/ISSUES.md
+!agent/GUIDELINES.md
+!agent/DECISIONS.md
+[Aa][Gg][Ee][Nn][Tt][Ss].[Mm][Dd]
+[Aa][Gg][Ee][Nn][Tt][Ss].*.[Mm][Dd]
+CLAUDE.md
+GEMINI.md
+.cursorrules
+.github/copilot-instructions.md
+.github/instructions/
+/docs/ai_audit/
+/_archive/
+/.tmp/
+
+# Secret và môi trường thật; chỉ cho phép mẫu không chứa secret
+.env.*
+*.env
+*.env.*
+.envrc.*
+!.env.example
+!/configs/local.env.example
+secrets/
+.secrets/
+credentials/
+.credentials/
+secrets.json
+secrets.yaml
+secrets.yml
+secrets.toml
+credentials.json
+credentials.yaml
+credentials.yml
+credentials.toml
+credentials*.json
+service-account*.json
+service_account*.json
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+.ssh/
+.aws/
+.azure/
+.gcloud/
+.pgpass
+pgpass.conf
+.pg_service.conf
+.netrc
+_netrc
+.npmrc
+
+# Thông tin cá nhân và cấu hình máy cá nhân
+personal/
+private/
+.private/
+local_only/
+*.private.*
+*.personal.*
+*.local.*
+.vscode/
+.idea/
+*.code-workspace
+*.suo
+*.user
+.jupyter/
+.ipython/
+
+# Frontend: dependencies và build; giữ package/lockfile
+node_modules/
+.next/
+.nuxt/
+.svelte-kit/
+.vite/
+coverage/
+
+# Tệp tạm của hệ điều hành, editor và Office
+.DS_Store
+Thumbs.db
+Desktop.ini
+*.tmp
+*.temp
+*.bak
+*.swp
+*.swo
+*~
+~$*

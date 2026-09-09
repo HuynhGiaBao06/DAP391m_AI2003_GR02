@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "hmda-project"
+version = "0.0.0"
+description = "HMDA New York research and Web API scaffold"
+readme = "README.md"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["hmda*"]
+
+# Chỉ là metadata khung. Chốt Python, dependencies và dependency lock ở Phase 1.
+# Chưa có runtime dependencies hoặc bằng chứng cài đặt/chạy dự án.
