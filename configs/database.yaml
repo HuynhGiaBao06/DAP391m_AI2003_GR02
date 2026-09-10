@@ -1,2 +1,30 @@
-# Thông số PostgreSQL không chứa secret; chưa kết nối DB.
-# File khung, chưa có giá trị cấu hình để chạy pipeline.
+status: pending_connection
+connection:
+  host:
+    env: HMDA_DB_HOST
+    required: false
+    secret: false
+    default: null
+  port:
+    env: HMDA_DB_PORT
+    required: false
+    secret: false
+    default: "5432"
+  database:
+    env: HMDA_DB_NAME
+    required: false
+    secret: false
+    default: null
+  username:
+    env: HMDA_DB_USER
+    required: false
+    secret: false
+    default: null
+  password:
+    env: HMDA_DB_PASSWORD
+    required: false
+    secret: true
+    default: null
+
+# Endpoint, tên schema và quyền DB thật được chốt tại TASK-022.
+schemas: {}

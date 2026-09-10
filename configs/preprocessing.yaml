@@ -1,2 +1,4 @@
-# ĐỂ TRỐNG PHƯƠNG ÁN. Chỉ quyết định sau phân tích và kiểm tra dữ liệu.
-# File khung, chưa có giá trị cấu hình để chạy pipeline.
+status: pending_decision
+method: null
+
+# Không thêm phương án trước data quality, EDA gần raw và thử nghiệm train/validation.

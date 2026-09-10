@@ -4,13 +4,27 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "hmda-project"
-version = "0.0.0"
-description = "HMDA New York research and Web API scaffold"
+version = "0.1.0"
+description = "Reusable infrastructure for the HMDA New York research project"
 readme = "README.md"
+requires-python = ">=3.13,<3.14"
+dependencies = [
+    "PyYAML>=6.0.3,<7",
+]
+
+[dependency-groups]
+dev = [
+    "ipykernel>=6.31,<7",
+    "pytest>=8.4,<9",
+]
 
 [tool.setuptools.packages.find]
 where = ["src"]
 include = ["hmda*"]
 
-# Chỉ là metadata khung. Chốt Python, dependencies và dependency lock ở Phase 1.
-# Chưa có runtime dependencies hoặc bằng chứng cài đặt/chạy dự án.
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+markers = [
+    "integration: requires an external service or multi-component test environment",
+]

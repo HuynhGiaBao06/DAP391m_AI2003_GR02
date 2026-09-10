@@ -1,2 +1,10 @@
-# Đường dẫn tương đối và thông tin dự án.
-# File khung, chưa có giá trị cấu hình để chạy pipeline.
+name: hmda-project
+root_markers:
+  - pyproject.toml
+  - src/hmda
+paths:
+  configs: configs
+  data: data
+  artifacts: artifacts
+  logs: logs
+  notebooks: notebooks
