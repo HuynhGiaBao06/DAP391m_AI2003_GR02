@@ -6,7 +6,7 @@
 
 | Thông tin | Nơi lưu |
 | --- | --- |
-| Kiến trúc, phase, đầu ra và gate | Project Master trong docs/ |
+| Kiến trúc, phase, đầu ra và gate | [PROJECT_MASTER_CONTEXT](PROJECT_MASTER_CONTEXT.md) để đọc nhanh; DOCX nguồn chỉ mở theo điều kiện trong context |
 | Căn cứ nghiên cứu và RQ | Project Planning trong docs/ |
 | Điểm dừng, việc đang làm và bước tiếp theo | PROJECT_STATE.md |
 | Phạm vi, quyền đã giao, công việc và kiểm tra | tasks/TASK-xxx.md; INDEX chỉ tóm tắt |
@@ -32,16 +32,9 @@ Hiện chưa có runtime dự án được khóa hoặc lệnh chạy pipeline/A
 
 Khi triển khai Phase 1, ghi phiên bản Python, môi trường, dependency lock, cách cài package, kernel notebook và kiểm import từ ngoài project root. Runtime của công cụ tạo tài liệu không tự là môi trường chuẩn của dự án. Không sửa sys.path để che lỗi cài package.
 
-Các lệnh Git chỉ đọc đã dùng trong workspace:
+Quy tắc branch, commit, template, PR, review/merge, conflict và lệnh kiểm Git được quản lý tại [docs/git/WORKFLOW.md](../docs/git/WORKFLOW.md). Agent dùng cùng workflow với nhóm; không duy trì bộ quy tắc Git riêng trong hồ sơ local.
 
-| Lệnh | Mục đích |
-| --- | --- |
-| `git status --short` | Xem thay đổi đang có trước/sau task |
-| `git diff --check` | Kiểm lỗi whitespace trong thay đổi được Git theo dõi |
-| `git ls-files` | Biết file nào thực sự đã được theo dõi |
-| `git check-ignore -v --no-index <path>` | Xác định quy tắc ignore áp dụng cho một đường dẫn |
-
-Lệnh Git chạy trong checkout. Điều này không thay yêu cầu path.py phải độc lập cwd. Khi ghi lệnh mới vào tài liệu, đánh dấu ĐÃ KIỂM hoặc CHƯA KIỂM cùng môi trường và kết quả; không ghi secret vào command/log.
+Lệnh Git chạy trong checkout; path.py của ứng dụng vẫn phải độc lập cwd. Khi ghi lệnh mới vào task, đánh dấu ĐÃ KIỂM hoặc CHƯA KIỂM cùng môi trường và kết quả; không ghi secret vào command/log. Việc có hướng dẫn commit/push không cấp quyền thực hiện nếu người dùng chỉ yêu cầu sửa file.
 
 ## 3 Viết code và notebook
 
@@ -77,4 +70,6 @@ Cập nhật task → issue/decision/research nếu có thay đổi → INDEX �
 
 Kiểm thay đổi đang có trước khi sửa. Tách file/module khi chạy đồng thời; phối hợp thay đổi hợp đồng dùng chung trước khi ghi. Không reset/revert thay đổi không thuộc task.
 
-Hồ sơ agent bị ignore và không tự đồng bộ giữa máy. Khi cần dùng lại kết luận cho nhóm, đưa bản đã rà soát vào tài liệu dự án trong phạm vi người dùng giao; giữ thông tin cá nhân/secret local. Trước chuyển giao snapshot/artifact, dùng manifest và version; không coi trạng thái Markdown là khóa DB hay cơ chế chia sẻ dữ liệu.
+Project Master context, rules, session start, project state, guidelines, decisions, issues và research log được phép theo dõi để thành viên đồng bộ kiến trúc, cách làm và tiến độ. Task chi tiết, `AGENTS.md` và cấu hình trợ lý vẫn local. Không đặt secret hoặc dữ liệu cá nhân trong hồ sơ được chia sẻ; link tới task/evidence local không thay bằng chứng dùng chung cho PR.
+
+Khi cần dùng lại kết luận cho nhóm, đưa bản đã rà soát vào tài liệu dự án trong phạm vi người dùng giao. Trước chuyển giao snapshot/artifact, dùng manifest và version; không coi trạng thái Markdown là khóa DB hay cơ chế chia sẻ dữ liệu.

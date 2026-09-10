@@ -4,7 +4,7 @@ Phân biệt quyết định người dùng đã chốt với đề xuất/PENDI
 
 ## DEC-001 Kiến trúc được chấp nhận
 
-Ngày 2026-09-09: người dùng chấp nhận [Project Master v1.1](../docs/HMDA_Project_Master_Main.docx). Dùng tài liệu này làm nguồn kiến trúc; không sao chép toàn bộ đặc tả vào đây. Preprocessing giữ trạng thái chưa quyết định.
+Ngày 2026-09-09: người dùng chấp nhận Project Master v1.1. Agent dùng [Project Master context](PROJECT_MASTER_CONTEXT.md) để đọc nhanh; DOCX nguồn và hash được quản lý trong context. DOCX vẫn là nguồn chuẩn cho kiến trúc. Preprocessing giữ trạng thái chưa quyết định.
 
 ## DEC-002 Dựng cấu trúc và cô lập lịch sử
 
@@ -13,6 +13,8 @@ Ngày 2026-09-09: người dùng yêu cầu tạo cấu trúc theo Master và x�
 ## DEC-003 Hồ sơ agent và dữ liệu riêng tư chỉ lưu local
 
 Ngày 2026-09-09: theo yêu cầu người dùng, .gitignore chặn CSV ở mọi thư mục, hồ sơ agent và file bí mật/cá nhân theo tên/vùng lưu trữ. Toàn bộ _archive/ và docs/ai_audit/ được loại khỏi Git. README là điểm vào dùng chung, không phụ thuộc file agent khi clone. Quyết định này thay cách giữ manifest/README archive trên Git trước đó; các file vẫn còn nguyên local. Chi tiết kiểm tra tại TASK-002.
+
+Phạm vi chia sẻ hồ sơ agent của quyết định này được mở rộng bởi DEC-007; quy tắc chặn CSV, secret, dữ liệu cá nhân, archive và AI audit vẫn giữ nguyên.
 
 ## DEC-004 Hoàn thiện hồ sơ vận hành agent
 
@@ -29,6 +31,39 @@ Ngày 2026-09-09: theo yêu cầu người dùng, .gitignore chặn CSV ở mọ
 - Thực hiện: [AGENT_RULES](AGENT_RULES.md) định nghĩa bốn chế độ thao tác, các mức quyền từ chỉ đọc đến công bố/push, và nội dung tối thiểu của báo cáo file khi bàn giao.
 - Giới hạn: không mở thêm quyền chạy notebook/pipeline, ghi dữ liệu/DB hoặc push/publish nếu yêu cầu phiên không giao rõ; hồ sơ agent tiếp tục chỉ lưu local theo DEC-003.
 
+## DEC-006 Workflow và template Git dùng chung
+
+- Ngày: 2026-09-09. Trạng thái: IMPLEMENTED trong phạm vi file tài liệu/template.
+- Căn cứ: người dùng yêu cầu triển khai đề xuất gồm docs/git/WORKFLOW.md, docs/git/COMMIT_TEMPLATE.txt và .github/pull_request_template.md.
+- Thực hiện: quy tắc nhánh/commit/review/merge/conflict và cách xem git log nằm trong workflow; agent và README tham chiếu cùng nguồn. Mẫu commit dùng qua --template, không cần đổi Git config; PR template phải được đưa lên nhánh mặc định để GitHub tự dùng.
+- Kiểm trạng thái tại thời điểm TASK-008: đã có commit 7ad9dd4, nhánh feature/update_docs, và `.gitignore` khi đó có bốn ngoại lệ agent được theo dõi: GUIDELINES.md, DECISIONS.md, ISSUES.md, RESEARCH_LOG.md. Phạm vi này là bằng chứng lịch sử và đã được DEC-007 mở rộng.
+- Giới hạn: không commit/push, không đổi branch/config, không cấu hình GitHub protections hoặc tạo GIT_LOG/CHANGELOG giả. Không chạy notebook/model/DB.
+- Bằng chứng: TASK-008 local; ba file dùng chung có thể được review trực tiếp qua Git.
+
+## DEC-007 Chia sẻ context, cấu hình vận hành và tiến độ agent
+
+- Ngày: 2026-09-09. Trạng thái: ACCEPTED/IMPLEMENTED.
+- Căn cứ: người dùng xác nhận chính mình đã mở rộng `.gitignore` vì các thành viên nên biết cấu hình và tiến độ dự án.
+- Thực hiện: cho phép theo dõi Project Master context, rules, session start, project state, guidelines, decisions, issues và research log theo cấu hình hiện hành; task chi tiết, `AGENTS.md`, cấu hình trợ lý, archive và AI audit cá nhân vẫn local.
+- Lý do: thành viên và agent dùng chung kiến trúc rút gọn, cách làm việc và điểm tiếp tục; tránh mỗi máy có trạng thái vận hành khác nhau.
+- Điều kiện: rà soát secret, dữ liệu cá nhân, đường dẫn local và bằng chứng chỉ tồn tại trên một máy trước commit. Trạng thái Markdown không thay cơ chế đồng thời hoặc quyền chạy/ghi DB.
+
+## DEC-008 Tách triển khai hạ tầng Phase 1–2 khỏi phê duyệt Phase 0
+
+- Ngày: 2026-09-09. Trạng thái: ACCEPTED và đã phản ánh trong task backlog.
+- Căn cứ: người dùng xác nhận Phase 0 tiếp tục chờ phê duyệt, nhưng phần hạ tầng ổn định của Phase 1 và framework Phase 2 có thể triển khai độc lập, không phải chờ Project Master thay đổi.
+- Thực hiện: [TASK-009](tasks/TASK-009.md)–[TASK-015](tasks/TASK-015.md) phân rã Phase 1; [TASK-016](tasks/TASK-016.md)–[TASK-020](tasks/TASK-020.md) giữ phần Phase 2 có thể phát triển bằng config/fixture; [TASK-021](tasks/TASK-021.md)–[TASK-024](tasks/TASK-024.md) giữ phần cần HMDA/PostgreSQL thật.
+- Ranh giới: core không hard-code cohort, năm, bang, danh sách cột, quality threshold hoặc preprocessing. Thay đổi phạm vi nghiên cứu được hấp thụ qua config/contract đã review; thay đổi phá vỡ interface vẫn phải review.
+- Giới hạn quyền: quyết định này thay dependency tổ chức, không tự cấp quyền sửa code, cài/chạy, tải dữ liệu, kết nối/ghi DB hoặc công bố snapshot. G0–G2 vẫn chỉ đạt khi có đúng bằng chứng nghiệm thu.
+
+## DEC-009 Runtime và dependency nền Phase 1
+
+- Ngày: 2026-09-09. Trạng thái: IMPLEMENTED; chờ xác nhận G1 tại TASK-015.
+- Chọn Python 3.13.x, máy thử dùng 3.13.9; quản lý môi trường/lock bằng `uv` và `uv.lock`; package `hmda-project` dùng `src` layout và editable install.
+- Runtime dependency hiện chỉ có PyYAML 6.x. Nhóm dev/test/notebook hiện chỉ có pytest 8.x và ipykernel 6.x; thư viện dữ liệu/model/API chỉ thêm khi task tương ứng thực sự cần.
+- Kernel dùng tên `hmda-project`, display name `Python (HMDA Project)`, trỏ tới interpreter của `.venv`; không sửa `sys.path` trong notebook.
+- Bằng chứng: TASK-010 và TASK-015. Quyết định đóng PEND-03; không chốt DB, data, preprocessing hoặc stack Phase 2–7.
+
 ## Các quyết định còn chờ
 
 Đây là câu hỏi điều phối, không phải thông số hoặc phương án đã chọn. Tên owner và ngày cụ thể chưa phân công; TASK-005 thu thập xác nhận thật, không tự điền.
@@ -37,8 +72,7 @@ Ngày 2026-09-09: theo yêu cầu người dùng, .gitignore chặn CSV ở mọ
 | --- | --- | --- | --- | --- |
 | PEND-01 | Tên owner/reviewer và hạn cho các đầu việc | PENDING | G0 | TASK-005 |
 | PEND-02 | Lịch học phần, AI services và yêu cầu RQ mới | PENDING | Phạm vi sản phẩm trước G0; xác nhận với nhóm/giảng viên qua người dùng | TASK-005, TASK-007 |
-| PEND-03 | Python, runtime/dependency lock và cách thiết lập môi trường | PENDING | Phase 1/G1 | TASK-005 điều phối; chưa tách task kỹ thuật |
-| PEND-04 | Nguồn/PostgreSQL, quyền truy cập và nơi phân phối snapshot/artifact | PENDING | Trước nhập dữ liệu Phase 2/G2 | TASK-005 điều phối |
+| PEND-04 | Nguồn/PostgreSQL, quyền truy cập và nơi phân phối snapshot/artifact | PENDING | Trước nhập dữ liệu Phase 2/G2 | TASK-021–023 triển khai theo từng đầu vào; TASK-005 chỉ điều phối xác nhận nhóm |
 | PEND-05 | Phương án preprocessing và feature đủ điều kiện | PENDING | Sau phân tích/kiểm tra, trước train chính thức G4 | TASK-004 chỉ chuẩn bị câu hỏi |
 | PEND-06 | Chi tiết công thức SL, mẫu, seed và ngưỡng fairness còn mở | PENDING | Trước thực nghiệm tương ứng | TASK-006 chuẩn bị đặc tả |
 | PEND-07 | Frontend/hosting và mục tiêu hiệu năng đo được | PENDING | Trước tích hợp/nghiệm thu Phase 7 | TASK-007 chuẩn bị hợp đồng |

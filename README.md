@@ -2,7 +2,7 @@
 
 Dự án DAP391m · AI2003 · Group 2 nghiên cứu dự đoán trạng thái xử lý hồ sơ vay trên HMDA New York 2024, giải thích mô hình và đánh giá fairness, sau đó đưa kết quả vào ứng dụng Web thông qua API.
 
-**Trạng thái hiện tại: đã dựng cấu trúc theo Project Master v1.1; chưa triển khai pipeline, huấn luyện model hoặc vận hành API.**
+**Trạng thái hiện tại: hạ tầng lõi Phase 1 đã triển khai và đang chờ review G1; chưa nhập dữ liệu, triển khai pipeline nghiệp vụ, huấn luyện model hoặc vận hành API.**
 
 ## Mục tiêu và phạm vi
 
@@ -16,7 +16,10 @@ Target `action_taken` gồm ba lớp: khoản vay đã được cấp, hồ sơ 
 
 - [Project Master](docs/HMDA_Project_Master_Main.docx): kiến trúc, phạm vi công việc, đầu ra và điều kiện nghiệm thu của 9 phase trong 10 tuần.
 - [Project Planning](docs/HMDA_New_York_Project_Planning.docx): căn cứ nghiên cứu, RQ, thiết kế thực nghiệm và yêu cầu học phần.
-- [Protocol](docs/protocol.md), [paper review](docs/paper_review.md) và [API contract](docs/api_contract.md): hiện là khung, bổ sung khi thực hiện task tương ứng.
+- [Chỉ mục tài liệu](docs/README.md): vai trò, trạng thái và nguồn sự thật của từng tài liệu.
+- [Protocol](docs/protocol.md), [paper review](docs/paper_review.md) và [API contract](docs/api_contract.md): bản nháp nền đã đối chiếu; các mục phụ thuộc dữ liệu, công thức hoặc triển khai vẫn được đánh dấu `PENDING`.
+- [Notebook guidelines](docs/notebook_guidelines.md) và [reproducibility](docs/reproducibility.md): chuẩn notebook, provenance và mức bằng chứng.
+- [Contributing](CONTRIBUTING.md) và [Security](SECURITY.md): quy trình đóng góp, bảo vệ secret/dữ liệu và kiểm tra trước chia sẻ.
 
 README là điểm bắt đầu cho thành viên nhóm; đặc tả chi tiết và gate được quản lý trong Project Master.
 
@@ -32,7 +35,7 @@ PostgreSQL là nguồn dữ liệu dùng chung. Pipeline đọc dữ liệu, ki�
 
 **Preprocessing chưa được quyết định.** Chỉ lựa chọn sau phân tích và kiểm tra dữ liệu. Mọi phép biến đổi học từ dữ liệu phải fit trên train; validation, test, API và cross-region dùng lại trạng thái phù hợp đã lưu.
 
-Khi triển khai, `path.py` phải tìm project root từ `__file__` và marker dự án, không dùng `cwd`. Logging phải truy vết run/snapshot; quality gate chặn bước phụ thuộc khi có lỗi. Snapshot đã công bố phải bất biến và có manifest để đối soát giữa PostgreSQL và CSV.
+`path.py` đã tìm project root từ `__file__` và marker dự án, không dùng `cwd`. Config và logging lõi đã có kiểm tra/redaction; các quality gate, snapshot bất biến và đối soát PostgreSQL–CSV vẫn thuộc Phase 2.
 
 ## Cấu trúc dùng chung
 
@@ -49,7 +52,7 @@ Khi triển khai, `path.py` phải tìm project root từ `__file__` và marker 
 | `artifacts/runs/`, `logs/` | Kết quả theo run và log runtime local |
 | `sql/` | Migrations PostgreSQL và truy vấn quality |
 | `api/`, `web/` | Dịch vụ và giao diện; frontend stack chưa chọn |
-| `tests/` | Unit, integration, e2e; chưa có test case |
+| `tests/` | 22 unit test Phase 1; integration/e2e nghiệp vụ vẫn là placeholder |
 | `docs/` | Tài liệu chính và đặc tả theo phase |
 
 Xem thêm [cấu hình](configs/README.md), [dữ liệu local](data/README.md), [artifacts](artifacts/README.md) và [kiểm tra](tests/README.md).
@@ -57,26 +60,28 @@ Xem thêm [cấu hình](configs/README.md), [dữ liệu local](data/README.md),
 ## Bắt đầu làm việc
 
 1. Đọc Project Master và Planning để hiểu phạm vi và phase đang thực hiện.
-2. Thống nhất phân công, protocol và các quyết định mở của Phase 0 trước khi triển khai hạ tầng.
-3. Ở Phase 1, chốt Python, dependencies và dependency lock; triển khai path/config/logger, cài package và kiểm notebook kernel.
+2. Cài `uv` và dùng Python 3.13.9; tại project root chạy `uv sync --dev` để đồng bộ từ `uv.lock`.
+3. Chạy `uv run pytest` và kiểm import bằng `uv run python -c "import hmda; print(hmda.__version__)"`.
 4. Ở Phase 2, thiết lập quyền PostgreSQL, nguồn dữ liệu, quality checks và snapshot trước khi phân tích/train.
 
-Hiện `.py` chỉ chứa mô tả; 11 notebook chỉ có Markdown và chưa có code/output. Các YAML chưa có giá trị chạy pipeline, `pyproject.toml` mới có metadata khung. Chưa có dữ liệu, snapshot, model hoặc lệnh chạy ứng dụng được kiểm chứng. Không dùng trạng thái dựng cấu trúc làm bằng chứng đã đạt G0–G8.
+Hạ tầng Phase 1 gồm package `src` layout, root/path, config, logging/exceptions và các protocol component/pipeline độc lập dữ liệu. 11 notebook vẫn chỉ có Markdown và chưa có code/output; các module nghiệp vụ ngoài Phase 1 phần lớn còn là scaffold. Chưa có dữ liệu, snapshot, model hoặc kết quả nghiên cứu. Không dùng 22 unit test hạ tầng làm bằng chứng G2–G8.
 
-Hướng dẫn chạy thực tế sẽ được bổ sung vào [reproducibility](docs/reproducibility.md) và [deployment](docs/deployment.md) sau khi kiểm chứng trên môi trường của dự án.
+Lệnh, phiên bản và bằng chứng kiểm thực tế nằm trong [reproducibility](docs/reproducibility.md). Deployment vẫn chưa được triển khai.
 
 ## Quy tắc đưa file lên Git
+
+Nhóm dùng [workflow Git](docs/git/WORKFLOW.md), [mẫu commit](docs/git/COMMIT_TEMPLATE.txt) và [mẫu pull request](.github/pull_request_template.md). Workflow quy định branch, commit, review/merge, conflict và cách xem lịch sử; hồ sơ agent tham chiếu cùng tài liệu này.
 
 Git quản lý code, notebook nguồn, test, SQL, cấu hình không bí mật, dependency lock và tài liệu dùng chung. `.gitignore` loại trừ:
 
 - CSV ở mọi thư mục, kể cả `.CSV`, `.csv.gz` và bản sao `.csv.*`.
 - Dữ liệu, model/artifact và log local; chỉ giữ README cùng marker `.gitkeep` trong các vùng này.
-- Hồ sơ agent như `agent/`, `AGENTS.md`, `.agents/`, `.codex/` và các cấu hình trợ lý tương ứng; toàn bộ `_archive/` và `.tmp/`.
+- Hồ sơ agent mặc định bị loại trừ, nhưng context kiến trúc, rules, session start, project state, guideline, decision, issue và research log của dự án được phép theo dõi để thành viên dùng chung. Task chi tiết, cấu hình trợ lý, `AGENTS.md`, `_archive/` và `.tmp/` vẫn local. Danh sách chính xác do `.gitignore` hiện hành quản lý; mọi file agent phải được rà soát trước chia sẻ.
 - Nhật ký AI cá nhân trong `docs/ai_audit/`; chỉ chuẩn bị bản bàn giao đã rà soát khi đến phase liên quan.
 - File môi trường thật, secret, credentials, khóa truy cập, cấu hình máy và tệp tạm. Mẫu `configs/local.env.example` được giữ vì không chứa giá trị bí mật.
 - Tài liệu cá nhân đặt trong `personal/`, `private/`, `.private/` hoặc `local_only/`; các file mang hậu tố `.private.*` và `.personal.*` cũng được loại trừ.
 
-Trên máy có hồ sơ agent, `AGENTS.md` là điểm vào và `agent/PROJECT_STATE.md` ghi điểm tiếp tục. Những file này chỉ lưu local, không có trong bản clone từ Git; chúng không thay thế tài liệu dùng chung của nhóm.
+`agent/PROJECT_MASTER_CONTEXT.md`, `agent/SESSION_START.md`, `agent/AGENT_RULES.md` và `agent/PROJECT_STATE.md` giúp thành viên/agent mới đọc kiến trúc, quy tắc và tiến độ mà không cần nạp toàn bộ DOCX. `AGENTS.md` và task chi tiết vẫn local; README này tiếp tục là điểm vào dùng chung cho người làm dự án.
 
 `.gitignore` chỉ lọc theo đường dẫn/tên file, không phát hiện thông tin cá nhân hoặc secret bên trong README, DOCX, notebook hay mã nguồn. Trước commit, kiểm tra danh sách file và nội dung được stage; rà soát cả output/metadata của notebook. Không dùng `git add -f` để đưa các file đã chặn lên Git.
 

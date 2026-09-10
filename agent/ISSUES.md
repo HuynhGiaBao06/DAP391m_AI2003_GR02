@@ -1,6 +1,6 @@
 # Sổ vấn đề
 
-Cập nhật: 2026-09-09. Giữ 12 mã RQ-I01–RQ-I12 và 5 mã TECH-001–TECH-005 từ Master. Hiện tất cả là rủi ro thiết kế OPEN, chưa phải lỗi runtime đã được quan sát.
+Cập nhật: 2026-09-09. Giữ 12 mã RQ-I01–RQ-I12 và 5 mã TECH-001–TECH-005 từ Master. TECH-004 đã `RESOLVED` bằng evidence Phase 1 và chờ review độc lập để `CLOSED`; các mục còn lại giữ `OPEN`.
 
 ## Cách ghi và đóng issue
 
@@ -8,7 +8,7 @@ Mỗi issue ghi loại (rủi ro/lỗi đã quan sát), trạng thái, ảnh hư
 
 OPEN → IN_PROGRESS khi có task xử lý → RESOLVED khi có evidence → CLOSED sau xác minh. Có thể REOPEN khi bằng chứng mới phủ định kết quả. Đầu ra mở rộng có thể NOT_APPLICABLE nếu có quyết định phạm vi, không dùng để bỏ gate bắt buộc.
 
-Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai trò dưới đây chỉ để điều phối. Task 004–007 chuẩn bị đặc tả/điều phối, không thay test/runtime cần ở phase sau.
+Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai trò dưới đây chỉ để điều phối. TASK-004–007 chuẩn bị Phase 0; TASK-009–024 phân rã Phase 1–2. Việc task tồn tại không thay test/runtime/data/DB evidence cần để đóng issue.
 
 ## RQ-I01 Thiết kế chưa là bằng chứng chạy; mỗi gate cần artifact/test thực.
 
@@ -16,7 +16,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Owner/reviewer: chưa phân công; vai trò dự kiến Điều phối/QA. Hạn: trước gate liên quan, chưa có ngày cụ thể.
 - Ảnh hưởng: Sai trạng thái nghiệm thu làm nhóm dùng kết quả chưa được kiểm.
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có bằng chứng runtime hoặc evidence đóng issue.
-- Task chuẩn bị: [TASK-004](tasks/TASK-004.md), [TASK-005](tasks/TASK-005.md); task triển khai/kiểm thực tế sẽ tách khi đến phase.
+- Task chuẩn bị: [TASK-004](tasks/TASK-004.md), [TASK-005](tasks/TASK-005.md); review gate kỹ thuật gần hạn tại [TASK-015](tasks/TASK-015.md) và [TASK-024](tasks/TASK-024.md); phase sau tiếp tục tách khi đến lượt.
 - Điều kiện giải quyết: Mỗi gate có checklist và bằng chứng thực cho đúng phạm vi; review trạng thái ở các phase liên quan.
 - Lịch sử: 2026-09-09 kế thừa từ Master và bổ sung cách theo dõi; vẫn OPEN.
 
@@ -46,7 +46,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Owner/reviewer: chưa phân công; vai trò dự kiến Model/API. Hạn: trước gate liên quan, chưa có ngày cụ thể.
 - Ảnh hưởng: Mapping hoặc diễn giải sai ba lớp làm sai metrics, giao diện và kết luận.
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có bằng chứng runtime hoặc evidence đóng issue.
-- Task chuẩn bị: [TASK-004](tasks/TASK-004.md), [TASK-007](tasks/TASK-007.md); task triển khai/kiểm thực tế sẽ tách khi đến phase.
+- Task chuẩn bị: [TASK-004](tasks/TASK-004.md), [TASK-007](tasks/TASK-007.md); contract gần hạn tại [TASK-014](tasks/TASK-014.md) và data/schema thật tại [TASK-021](tasks/TASK-021.md); kiểm mapping model/API vẫn tách ở phase sau.
 - Điều kiện giải quyết: Đối chiếu nhãn, thứ tự xác suất và báo cáo/UI; kiểm ví dụ và end-to-end tại phase triển khai.
 - Lịch sử: 2026-09-09 kế thừa từ Master và bổ sung cách theo dõi; vẫn OPEN.
 
@@ -66,7 +66,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Owner/reviewer: chưa phân công; vai trò dự kiến Data/model. Hạn: trước gate liên quan, chưa có ngày cụ thể.
 - Ảnh hưởng: Target/audit metadata vào X hoặc diễn giải loại sex là bảo đảm fairness.
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có bằng chứng runtime hoặc evidence đóng issue.
-- Task chuẩn bị: [TASK-004](tasks/TASK-004.md), [TASK-007](tasks/TASK-007.md); task triển khai/kiểm thực tế sẽ tách khi đến phase.
+- Task chuẩn bị: [TASK-004](tasks/TASK-004.md), [TASK-007](tasks/TASK-007.md); contract gần hạn tại [TASK-014](tasks/TASK-014.md) và data/schema thật tại [TASK-021](tasks/TASK-021.md); kiểm X ở phase model/API vẫn tách sau.
 - Điều kiện giải quyết: Kiểm X và schema API không chứa trường cấm; nối audit theo khóa, giữ đúng giới hạn diễn giải.
 - Lịch sử: 2026-09-09 kế thừa từ Master và bổ sung cách theo dõi; vẫn OPEN.
 
@@ -76,7 +76,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Owner/reviewer: chưa phân công; vai trò dự kiến Model. Hạn: trước gate liên quan, chưa có ngày cụ thể.
 - Ảnh hưởng: Gộp nhãn hoặc cân bằng test làm thay đổi bài toán và phân bố đánh giá.
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có bằng chứng runtime hoặc evidence đóng issue.
-- Task chuẩn bị: [TASK-004](tasks/TASK-004.md); task triển khai/kiểm thực tế sẽ tách khi đến phase.
+- Task chuẩn bị: [TASK-004](tasks/TASK-004.md); TASK-021 kiểm target/cohort trên dữ liệu thật, còn split/balancing/model test sẽ tách ở Phase 3–4.
 - Điều kiện giải quyết: Giữ ba lớp và phân bố validation/test theo protocol; kiểm split và báo cáo theo lớp.
 - Lịch sử: 2026-09-09 kế thừa từ Master và bổ sung cách theo dõi; vẫn OPEN.
 
@@ -86,7 +86,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Owner/reviewer: chưa phân công; vai trò dự kiến Data/QA. Hạn: trước gate liên quan, chưa có ngày cụ thể.
 - Ảnh hưởng: Sai lineage hoặc join có thể mất/nhân dòng và ghép nhầm predictions.
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có bằng chứng runtime hoặc evidence đóng issue.
-- Task chuẩn bị: [TASK-004](tasks/TASK-004.md); task triển khai/kiểm thực tế sẽ tách khi đến phase.
+- Task chuẩn bị: [TASK-004](tasks/TASK-004.md); source identity/snapshot/data contract và integration gần hạn tại [TASK-017](tasks/TASK-017.md), [TASK-019](tasks/TASK-019.md), [TASK-021](tasks/TASK-021.md), [TASK-023](tasks/TASK-023.md) và [TASK-024](tasks/TASK-024.md); split/join ở phase sau tiếp tục tách khi đến lượt.
 - Điều kiện giải quyết: Đối soát nguồn/snapshot/split và join theo khóa; manifests và integration test trên đầu ra thực.
 - Lịch sử: 2026-09-09 kế thừa từ Master và bổ sung cách theo dõi; vẫn OPEN.
 
@@ -136,7 +136,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Owner/reviewer: chưa phân công; vai trò dự kiến Data/DB. Hạn: trước gate liên quan, chưa có ngày cụ thể.
 - Ảnh hưởng: Trùng nguồn hoặc publish nửa chừng gây sai dữ liệu dùng chung.
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có evidence triển khai hoặc đóng.
-- Task điều phối: [TASK-005](tasks/TASK-005.md); chưa tách task triển khai ở phase xa.
+- Task triển khai: [TASK-020](tasks/TASK-020.md), [TASK-022](tasks/TASK-022.md), [TASK-023](tasks/TASK-023.md) và review [TASK-024](tasks/TASK-024.md).
 - Điều kiện giải quyết: Kiểm concurrency, retry/idempotency và rollback trên DB; snapshot READY chỉ công bố toàn vẹn.
 - Lịch sử: 2026-09-09 kế thừa từ Master; cấu trúc/rules đã có không đủ để đóng rủi ro này.
 
@@ -146,7 +146,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Owner/reviewer: chưa phân công; vai trò dự kiến Data/QA. Hạn: trước gate liên quan, chưa có ngày cụ thể.
 - Ảnh hưởng: Round-trip thay đổi ý nghĩa hoặc khóa định danh.
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có evidence triển khai hoặc đóng.
-- Task điều phối: [TASK-005](tasks/TASK-005.md); chưa tách task triển khai ở phase xa.
+- Task triển khai: [TASK-017](tasks/TASK-017.md)–[TASK-019](tasks/TASK-019.md), [TASK-021](tasks/TASK-021.md)–[TASK-024](tasks/TASK-024.md).
 - Điều kiện giải quyết: Kiểm export/readback theo khóa và nội dung; giữ schema/token/count, checksum và recovery.
 - Lịch sử: 2026-09-09 kế thừa từ Master; cấu trúc/rules đã có không đủ để đóng rủi ro này.
 
@@ -162,13 +162,13 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 
 ## TECH-004 Config hoặc secret rải rác
 
-- Loại/trạng thái/severity: rủi ro thiết kế / OPEN / UNASSESSED. Phase liên quan: 1.
-- Owner/reviewer: chưa phân công; vai trò dự kiến Core/QA. Hạn: trước gate liên quan, chưa có ngày cụ thể.
+- Loại/trạng thái/severity: rủi ro thiết kế / RESOLVED / UNASSESSED. Phase liên quan: 1.
+- Owner: Agent theo yêu cầu người dùng. Reviewer: chưa phân công; xác minh tại TASK-015.
 - Ảnh hưởng: Tham số không nhất quán hoặc lộ secret, đường dẫn lệ thuộc máy.
-- Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có evidence triển khai hoặc đóng.
-- Task điều phối: [TASK-005](tasks/TASK-005.md); chưa tách task triển khai ở phase xa.
+- Nguồn/bằng chứng: mục 8 Project Master v1.1; TASK-010–015, 22/22 unit test, import ngoài repo và kernel smoke ngày 2026-09-09.
+- Task triển khai: [TASK-010](tasks/TASK-010.md)–[TASK-013](tasks/TASK-013.md) và DB config/security tại [TASK-022](tasks/TASK-022.md).
 - Điều kiện giải quyết: Config tập trung, kiểm thiếu/sai, path độc lập cwd và test logger không lộ secret; .gitignore riêng không đủ đóng mục này.
-- Lịch sử: 2026-09-09 kế thừa từ Master; cấu trúc/rules đã có không đủ để đóng rủi ro này.
+- Lịch sử: 2026-09-09 triển khai config tập trung, path độc lập `cwd`, secret redaction và logger idempotent; chuyển `RESOLVED`, chưa `CLOSED` trước review độc lập.
 
 ## TECH-005 State/task ghi DONE nhưng thiếu bằng chứng
 
@@ -176,7 +176,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Owner/reviewer: chưa phân công; vai trò dự kiến Điều phối/QA. Hạn: trước gate liên quan, chưa có ngày cụ thể.
 - Ảnh hưởng: Nhóm tiếp tục dựa trên trạng thái sai.
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có evidence triển khai hoặc đóng.
-- Task điều phối: [TASK-005](tasks/TASK-005.md); chưa tách task triển khai ở phase xa.
+- Task review gần hạn: [TASK-015](tasks/TASK-015.md) cho G1 và [TASK-024](tasks/TASK-024.md) cho G2; các phase sau tiếp tục liên kết khi được phân rã.
 - Điều kiện giải quyết: Đối chiếu tiêu chí và bằng chứng của task/gate; sửa trạng thái lệch, review khi bàn giao và tái lập cuối dự án.
 - Lịch sử: 2026-09-09 kế thừa từ Master; cấu trúc/rules đã có không đủ để đóng rủi ro này.
 

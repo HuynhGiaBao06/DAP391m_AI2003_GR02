@@ -49,6 +49,9 @@ coverage.xml
 *.py.cover
 .hypothesis/
 .pytest_cache/
+.pytest_tmp/
+.pytest_run_*/
+.uv-cache/
 cover/
 
 # Translations
@@ -247,7 +250,7 @@ __marimo__/
 *.backup
 *.log.*
 
-# Hồ sơ agent local ở mọi cấp thư mục
+# Hồ sơ agent mặc định local ở mọi cấp thư mục
 **/agent/**
 **/agents/**
 **/.agent/**
@@ -257,12 +260,17 @@ __marimo__/
 **/.cursor/**
 **/.aider*
 
-# Cho phép hai file đặc biệt trong agent/
+# Cho phép chia sẻ context, quy tắc, tiến độ và hồ sơ quản trị của dự án
 !agent/
+!agent/PROJECT_MASTER_CONTEXT.md
 !agent/RESEARCH_LOG.md
 !agent/ISSUES.md
 !agent/GUIDELINES.md
 !agent/DECISIONS.md
+!agent/SESSION_START.md
+!agent/PROJECT_STATE.md
+!agent/RULES.md
+!agent/AGENT_RULES.md
 [Aa][Gg][Ee][Nn][Tt][Ss].[Mm][Dd]
 [Aa][Gg][Ee][Nn][Tt][Ss].*.[Mm][Dd]
 CLAUDE.md
