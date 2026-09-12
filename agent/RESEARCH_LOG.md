@@ -45,3 +45,24 @@ Bước tiếp theo:
 - **Bước tiếp theo:** đọc full method/appendix và kiểm ví dụ 3–4 feature trước implementation RQ2.
 
 Các câu hỏi cần đọc/kiểm tiếp theo vẫn được quản lý theo kế hoạch gần hạn; không tạo kết quả giả để lấp log.
+
+## RL-002 — Đối chiếu source contract file HMDA New York tạm
+
+- **Ngày / phạm vi:** 2026-09-11; TASK-021; đọc-only toàn bộ `data/raw/state_NY_filter.csv`, không sửa raw, không chạy notebook hoặc DB.
+- **Trạng thái / loại bằng chứng:** OBSERVED + USER-CONFIRMED MAPPING — lần đọc streaming mới trên đúng bytes local; người dùng xác nhận mapping target ngày 2026-09-11; provenance URL/version của file local chưa được xác nhận.
+- **Nguồn dữ liệu và tài liệu:** file local đã được kiểm checksum trong evidence nội bộ; [CFPB 2024 HMDA release](https://www.consumerfinance.gov/about-us/newsroom/2024-hmda-data-on-mortgage-lending-now-available/); [2024 HMDA Filing Instructions Guide](https://files.ffiec.cfpb.gov/documentation/2024-hmda-fig.pdf); [FFIEC 2024 dynamic dataset](https://ffiec.cfpb.gov/data-publication/dynamic-national-loan-level-dataset/2024).
+- **Mẫu và phép kiểm:** 293.301 dòng, 18 cột; kiểm toàn bộ header/row width, token, missing, numeric parse, regex county/LEI và exact-row equality trên 18 cột.
+- **Kết quả:** cấu trúc CSV hợp lệ; `activity_year=2024` và `state_code=NY` cho mọi dòng. Target nội bộ dùng `0/1/2`: `0=Loan originated/HMDA 1`, `1=Approved but not accepted/HMDA 2`, `2=Application denied/HMDA 3`; toàn bộ 293.301 dòng thuộc miền này. Sex ngoài cohort 1/2 có 26.238 dòng. County có 291.922 giá trị nonblank dạng `NNNNN.0` và 1.379 blank. Có 699 dòng dư trong nhóm giống hệt trên 18 cột.
+- **Kết luận được hỗ trợ:** mapping target là chủ ý và không phải lỗi dữ liệu; quality contract phải chấp nhận `0/1/2` nhưng giữ ánh xạ về ý nghĩa HMDA. File vẫn chưa đủ để publish vì provenance/version và county format chưa giải quyết. Equality trên 18 cột không chứng minh duplicate application vì file không có application ID duy nhất.
+- **Giới hạn:** chưa biết URL/version và quy trình tạo file; chưa đánh giá feature timing/leakage; chưa kiểm mapping qua model/API hoặc DB round-trip.
+- **Issue / bước tiếp theo:** DATA-001 `RESOLVED`, DATA-002/RQ-I02/RQ-I04/TECH-002 còn mở; khi tiếp tục TASK-021 cần provenance và xử lý county.
+
+## RL-003 — Căn cứ business context của target ba lớp
+
+- **Ngày / phạm vi:** 2026-09-12; TASK-025; rà soát ý nghĩa `action_taken` và business framing, không chạy dữ liệu, notebook hoặc mô hình.
+- **Trạng thái / loại bằng chứng:** OBSERVED — đối chiếu văn bản chính thức; chưa phải bằng chứng định lượng trên cohort New York 2024.
+- **Nguồn:** CFPB Regulation C official interpretations cho 12 CFR 1003.4(a)(8)(i); OCC Comptroller's Handbook, Mortgage Banking, Appendix B trang 164 và glossary trang 217; CFPB Intent to Proceed.
+- **Kết quả được hỗ trợ:** `Approved but not accepted` dùng khi tổ chức đã đưa ra quyết định phê duyệt trước closing/account opening và chỉ còn điều kiện cam kết/closing thông thường, nhưng người nộp đơn/bên nhận không phản hồi hoặc khoản vay không được hoàn tất. Các khoản trong origination pipeline không đi đến closing được OCC mô tả là fallout; lịch sử fallout có liên quan đến dự báo và quản trị pipeline.
+- **Cách áp dụng:** xem target ba lớp như kết quả của hai điểm trong mortgage application funnel: approval so với denial, rồi origination so với approved-but-not-accepted trong nhóm đã được phê duyệt. Cách hiểu này tạo business context cho RQ1–RQ3 mà không đổi target hay protocol.
+- **Giới hạn:** HMDA không ghi nguyên nhân cụ thể của từng hồ sơ lớp 2. Không suy pricing, cạnh tranh, trải nghiệm khách hàng, sự cố closing, rate lock, chi phí, doanh thu hay hedging loss cho từng hồ sơ nếu không có dữ liệu bổ sung. Không đồng nhất mọi lớp 2 với rate-locked fallout.
+- **Decision / artifact:** DEC-010; Project Master v1.2, Project Planning v1.2 và Research Plan v2.2.

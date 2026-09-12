@@ -13,8 +13,9 @@ File này giúp thành viên tìm đúng nguồn thông tin và biết tài li�
 
 | Tài liệu | Vai trò | Trạng thái hiện tại |
 | --- | --- | --- |
-| [Project Master](HMDA_Project_Master_Main.docx) | Kiến trúc, phase, phạm vi và điều kiện nghiệm thu toàn dự án | APPROVED, v1.1 |
-| [Project Planning](HMDA_New_York_Project_Planning.docx) | Ba RQ, cohort, thiết kế nghiên cứu và căn cứ phương pháp | APPROVED, v1.1 |
+| [Project Master](HMDA_Project_Master_Main.docx) | Kiến trúc, phase, phạm vi và điều kiện nghiệm thu toàn dự án | APPROVED, v1.2 |
+| [Project Planning](HMDA_New_York_Project_Planning.docx) | Ba RQ, cohort, thiết kế nghiên cứu và căn cứ phương pháp | APPROVED, v1.2 |
+| [Research Plan](HMDA_New_York_Research_Plan_RQ1_RQ2_RQ3.docx) | Paper matrix, metric contract, thiết kế chi tiết và giới hạn của RQ1–RQ3 | DRAFT, v2.2 |
 | [Protocol](protocol.md) | Quyết định thực nghiệm có hiệu lực và các mục đang chờ | DRAFT |
 | [Paper review](paper_review.md) | Bằng chứng từ paper, phần kế thừa và giới hạn áp dụng | DRAFT |
 | [API contract](api_contract.md) | Hợp đồng Web API độc lập với implementation | DRAFT v0 |
