@@ -39,7 +39,7 @@ API và RegionDataPipeline dùng lại model bundle đã fit, không fit lại t
 
 ## Output và khả năng tái lập
 
-Notebook phải hiển thị đơn vị, mẫu số, số dòng và phiên bản liên quan cạnh bảng/biểu đồ. Tên lớp dùng đúng mapping `action_taken` 1/2/3; kết quả fairness ghi chiều gap, lớp OvR, nhóm, county và metric không xác định.
+Notebook phải hiển thị đơn vị, mẫu số, số dòng và phiên bản liên quan cạnh bảng/biểu đồ. Tên lớp dùng mapping nội bộ `action_taken` 0/1/2 và luôn hiển thị đúng ngữ nghĩa mã HMDA nguồn 1/2/3; kết quả fairness ghi chiều gap, lớp OvR, nhóm, county và metric không xác định.
 
 Không ghi run hoặc snapshot giả. Output đã lưu chỉ là bằng chứng saved-output; chỉ ghi clean-kernel reproducible khi đã restart kernel, chạy toàn bộ theo thứ tự và kiểm output cuối trong môi trường được nêu.
 
