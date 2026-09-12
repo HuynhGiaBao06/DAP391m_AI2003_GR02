@@ -1,6 +1,6 @@
 # Cấu hình tập trung
 
-`configs/` là nơi duy nhất chỉnh tham số dùng chung của dự án. `project.yaml`, `database.yaml`, `logging.yaml` và trạng thái `preprocessing.yaml` đã được `ConfigLoader` nạp/kiểm ở Phase 1; các giá trị phụ thuộc dữ liệu, schema, quality, training và evaluation vẫn là khung `PENDING`. Kiến trúc gốc nằm trong [Project Master](../docs/HMDA_Project_Master_Main.docx); quyết định thực nghiệm nằm trong [protocol](../docs/protocol.md).
+`configs/` là nơi duy nhất chỉnh tham số dùng chung của dự án. `project.yaml`, `database.yaml`, `logging.yaml` và trạng thái `preprocessing.yaml` đã được `ConfigLoader` nạp/kiểm ở Phase 1. TASK-021 đã ghi schema quan sát, hash và quality rules cho file local `state_NY_filter.csv`; mapping nội bộ `action_taken 0/1/2` đã được người dùng xác nhận và map về mã HMDA `1/2/3`. Source provenance/version và định dạng `county_code` vẫn chưa đạt, nên nguồn chưa được phép publish. Các giá trị training và evaluation vẫn `PENDING`. Kiến trúc gốc nằm trong [Project Master](../docs/HMDA_Project_Master_Main.docx); quyết định thực nghiệm nằm trong [protocol](../docs/protocol.md).
 
 ## Trách nhiệm từng file
 
@@ -19,9 +19,9 @@
 
 ## Nạp và kiểm cấu hình
 
-`ConfigLoader` đọc các YAML bắt buộc thành một `ConfigBundle`. Override chỉ được thay đường dẫn trường đã tồn tại; sau đó tham chiếu môi trường được resolve cho secret/địa chỉ triển khai. Không đọc tham số từ `cwd`, cell notebook hoặc một file YAML thứ hai trong artifact như nguồn chỉnh sửa.
+`ConfigLoader` đọc các YAML bắt buộc thành một `ConfigBundle`. Khi caller không truyền mapping môi trường tường minh, loader nạp `configs/local.env` nếu file tồn tại rồi để biến môi trường của process ghi đè; test có thể truyền `environment={}` để không chạm secret local. Override chỉ được thay đường dẫn trường đã tồn tại; sau đó tham chiếu môi trường được resolve cho secret/địa chỉ triển khai. Không đọc tham số từ `cwd`, cell notebook hoặc một file YAML thứ hai trong artifact như nguồn chỉnh sửa.
 
-Loader Phase 1 dừng sớm khi thiếu file bắt buộc, root YAML không phải mapping, root marker/path project sai, logging level không hợp lệ, override không tồn tại hoặc preprocessing còn pending nhưng có method. Các kiểm tra split, feature role, schema và quality thuộc task dữ liệu/model tương ứng, chưa được tuyên bố đã triển khai.
+Loader cấu hình dừng sớm khi thiếu file bắt buộc, root YAML không phải mapping, root marker/path project sai, logging level không hợp lệ, override không tồn tại hoặc preprocessing còn pending nhưng có method. Quality validator kiểm rule generic và các rule raw HMDA, gồm checksum, header, token, định dạng chuỗi và khả năng parse số. Rule cohort chỉ áp dụng sau lọc; mapping target đã xác nhận, còn feature timing và split chưa được chốt.
 
 Validation trả lỗi có `field_path` và thông điệp có thể xử lý, nhưng không in secret. Resolved config có bản redacted, serialization chuẩn hóa và SHA-256 `config_hash`; hash này là hạ tầng, chưa phải ID của một run/snapshot thật.
 
@@ -39,4 +39,4 @@ Bản cấu hình trong artifact là bằng chứng đã dùng, không phải ng
 
 ## Trạng thái chưa chốt
 
-Preprocessing tiếp tục để trống đến khi hoàn tất data quality, EDA gần raw và thử nghiệm train/validation. Python/dependency lock đã chốt ở Phase 1; PostgreSQL endpoint, schema HMDA thật, ngưỡng fairness, region, frontend/hosting và latency chưa được điền cho tới khi có quyết định/bằng chứng tương ứng.
+Preprocessing tiếp tục để trống đến khi hoàn tất data quality, EDA gần raw và thử nghiệm train/validation. Python/dependency lock đã chốt ở Phase 1; schema PostgreSQL raw-first và quyền runtime đã được kiểm trên Neon PostgreSQL 18.6 branch test nhưng chưa deploy vào DB đích. Ngưỡng fairness, region, frontend/hosting và latency chưa được điền cho tới khi có quyết định/bằng chứng tương ứng.
