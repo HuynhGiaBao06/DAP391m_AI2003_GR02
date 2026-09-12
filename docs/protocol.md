@@ -2,16 +2,16 @@
 
 **Phiên bản:** 0.1
 
-**Trạng thái:** DRAFT — khóa phần đã được Project Planning v1.1 xác định; preprocessing và các ngưỡng phụ thuộc dữ liệu vẫn `PENDING`.
+**Trạng thái:** DRAFT — khóa phần đã được Project Planning v1.2 xác định; preprocessing và các ngưỡng phụ thuộc dữ liệu vẫn `PENDING`.
 
 Protocol này là nguồn vận hành cho thực nghiệm. [Project Master](HMDA_Project_Master_Main.docx) giữ kiến trúc/gate; [Project Planning](HMDA_New_York_Project_Planning.docx) giữ căn cứ đầy đủ của ba RQ.
 
 ## 1. Phạm vi đã khóa
 
 - Dữ liệu chính: HMDA 2024 One Year Public Loan/Application Records, bang New York.
-- Cohort: `activity_year = 2024`, `state_code = NY`, `action_taken ∈ {1,2,3}`, `applicant_sex ∈ {1,2}`.
-- Target danh nghĩa ba lớp: `1 = Loan originated`, `2 = Approved but not accepted`, `3 = Application denied`.
-- Không xem ba mã target là thang số; không gộp lớp 2 vào lớp 3.
+- Cohort nguồn HMDA: `activity_year = 2024`, `state_code = NY`, `action_taken ∈ {1,2,3}`, `applicant_sex ∈ {1,2}`.
+- File filtered hiện tại dùng mã nội bộ zero-based: `0 = Loan originated` (HMDA 1), `1 = Approved but not accepted` (HMDA 2), `2 = Application denied` (HMDA 3).
+- Không xem ba mã target là thang số; không gộp bất kỳ lớp nào. Khi báo cáo hoặc xuất API phải map mã nội bộ về đúng lớp ngữ nghĩa/HMDA.
 - Đầu ra phản ánh trạng thái xử lý hồ sơ lịch sử, không phải xác suất vỡ nợ, credit score hoặc quyết định cấp tín dụng thực tế.
 - Phần bắt buộc là NY. Chạy một bang khác là mở rộng có điều kiện và không thay thế RQ3 tại New York.
 
@@ -57,7 +57,7 @@ Join bằng `record_id` trong đúng `snapshot_id/run_id`, kiểm một-một v�
 ## 6. Thiết kế RQ2
 
 - Phân tích Logistic Regression và model phi tuyến tốt nhất theo macro-F1 validation. Nếu Logistic Regression đứng đầu, model phi tuyến vẫn chỉ được gọi là model phi tuyến được chọn.
-- Đầu ra theo riêng `p1`, `p2`, `p3` trên thang xác suất.
+- Đầu ra theo riêng `p1`, `p2`, `p3` trên thang xác suất; lần lượt tương ứng mã nội bộ `0`, `1`, `2` và mã HMDA `1`, `2`, `3`.
 - GSV của dự án là mean absolute Shapley values theo feature gốc và lớp; GSV đo độ lớn đóng góp, không cho biết chiều tác động.
 - Hai phương pháp dùng cùng hồ sơ giải thích, background từ train, seed và đơn vị feature gốc. Các dummy của cùng một feature được quản lý như một coalition theo quy tắc được kiểm chứng.
 - So thứ hạng bằng Spearman và mô tả feature bất đồng; không so trị số thô khi hai thang đo khác nhau.
