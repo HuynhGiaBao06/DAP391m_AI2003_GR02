@@ -1,6 +1,6 @@
 # Dữ liệu local
 
-PostgreSQL là nguồn dữ liệu dùng chung cho pipeline; `data/` giữ tệp nguồn và bản xuất snapshot phục vụ tái lập/local analysis. Hiện chưa có dữ liệu, kết nối PostgreSQL, `source_id` hoặc `snapshot_id` thật.
+PostgreSQL là nguồn dữ liệu dùng chung cho pipeline; `data/` giữ tệp nguồn và bản xuất snapshot phục vụ tái lập/local analysis. File tạm `raw/state_NY_filter.csv` là bản filtered đã map `action_taken` từ mã HMDA `1/2/3` sang mã nội bộ `0/1/2`; mapping này đã được người dùng xác nhận. File đã được TASK-021 đọc toàn bộ để ghi hash/schema/token nhưng chưa được đăng ký làm raw source chuẩn vì URL/version nguồn còn thiếu và `county_code` đang sai định dạng FIPS. Framework snapshot/atomic export và repository contract đã có unit evidence bằng fixture tại TASK-019/TASK-020; hiện chưa có kết nối PostgreSQL, `snapshot_id` hoặc snapshot `READY` thật.
 
 ## Cấu trúc local
 
@@ -20,7 +20,7 @@ Toàn bộ CSV và nội dung snapshot bị loại khỏi Git. Chỉ README và 
 2. Kiểm header/schema/encoding và đăng ký `source_id`.
 3. Nạp staging bằng một ingestion run có ID và transaction rõ.
 4. Đối soát số dòng, khóa, token và chạy quality rules đúng tầng.
-5. Tạo snapshot metadata ở trạng thái chưa công bố; xuất CSV qua file tạm.
+5. Tạo snapshot metadata ở trạng thái chưa công bố; xuất CSV/manifest trong staging directory cùng filesystem, flush rồi đổi tên directory để công bố nguyên tử.
 6. Kiểm checksum và đối soát DB ↔ CSV theo `record_id`.
 7. Chỉ chuyển snapshot thành `READY` khi dữ liệu, manifest, quality report và export nhất quán. Run lỗi giữ `FAILED` và không được reader chọn.
 

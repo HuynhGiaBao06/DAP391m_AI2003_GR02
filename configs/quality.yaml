@@ -1,2 +1,137 @@
-# Quy tắc ERROR/WARNING, tolerance và hợp đồng kiểm tra.
-# File khung, chưa có giá trị cấu hình để chạy pipeline.
+status: source_rules_profiled_with_blocking_errors
+framework:
+  severity_levels:
+    - ERROR
+    - WARNING
+  supported_rule_types:
+    - required_columns
+    - field_type
+    - allowed_values
+    - missing_key
+    - duplicate_key
+    - checksum_match
+    - matches_pattern
+    - parseable_number
+defaults:
+  sample_limit: 5
+sample_id_field: record_id
+
+rules:
+  - rule_id: HMDA_RAW_001_HEADER
+    type: required_columns
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params:
+      columns: [income, loan_amount, combined_loan_to_value_ratio, property_value, loan_term, debt_to_income_ratio, loan_type, loan_purpose, lien_status, occupancy_type, construction_method, total_units, action_taken, applicant_sex, state_code, county_code, lei, activity_year]
+  - rule_id: HMDA_RAW_002_CHECKSUM
+    type: checksum_match
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params:
+      expected: 27f6dd99a55e07b9c95b943491c919ee0822d36790e900c999e35e884a095eee
+  - rule_id: HMDA_RAW_003_REQUIRED_VALUES
+    type: missing_key
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params:
+      fields: [loan_amount, action_taken, applicant_sex, state_code, lei, activity_year]
+  - rule_id: HMDA_FILTERED_004_ACTION_DOMAIN
+    type: allowed_values
+    layer: raw_filtered
+    severity: ERROR
+    version: '2'
+    params:
+      field: action_taken
+      values: ['0', '1', '2']
+  - rule_id: HMDA_RAW_005_SEX_DOMAIN
+    type: allowed_values
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params:
+      field: applicant_sex
+      values: ['1', '2', '3', '4', '6']
+  - rule_id: HMDA_RAW_006_YEAR
+    type: allowed_values
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params:
+      field: activity_year
+      values: ['2024']
+  - rule_id: HMDA_RAW_007_STATE
+    type: allowed_values
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params:
+      field: state_code
+      values: [NY]
+  - rule_id: HMDA_RAW_008_COUNTY_FORMAT
+    type: matches_pattern
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params:
+      field: county_code
+      pattern: '^[0-9]{5}$'
+      ignore_values: ['']
+  - rule_id: HMDA_RAW_009_COUNTY_MISSING
+    type: missing_key
+    layer: raw
+    severity: WARNING
+    version: '1'
+    params:
+      fields: [county_code]
+  - rule_id: HMDA_RAW_010_INCOME_PARSE
+    type: parseable_number
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params: {field: income, ignore_values: ['']}
+  - rule_id: HMDA_RAW_011_LOAN_AMOUNT_PARSE
+    type: parseable_number
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params: {field: loan_amount, ignore_values: []}
+  - rule_id: HMDA_RAW_012_CLTV_PARSE
+    type: parseable_number
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params: {field: combined_loan_to_value_ratio, ignore_values: ['']}
+  - rule_id: HMDA_RAW_013_PROPERTY_VALUE_PARSE
+    type: parseable_number
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params: {field: property_value, ignore_values: ['']}
+  - rule_id: HMDA_RAW_014_LOAN_TERM_PARSE
+    type: parseable_number
+    layer: raw
+    severity: ERROR
+    version: '1'
+    params: {field: loan_term, ignore_values: ['']}
+
+post_filter_contract:
+  action_taken: ['0', '1', '2']
+  applicant_sex: ['1', '2']
+  activity_year: ['2024']
+  state_code: [NY]
+  classes_must_remain_separate: true
+
+observed_evidence:
+  source_rows: 293301
+  action_outside_internal_domain: {affected_count: 0, denominator: 293301}
+  county_float_style_nonblank: {affected_count: 291922, denominator: 293301}
+  county_missing: {affected_count: 1379, denominator: 293301}
+  applicant_sex_outside_cohort: {affected_count: 26238, denominator: 293301}
+  exact_row_excess_duplicates:
+    affected_count: 699
+    denominator: 293301
+    severity: WARNING
+    note: Equality on the selected 18 columns does not prove duplicate HMDA applications.

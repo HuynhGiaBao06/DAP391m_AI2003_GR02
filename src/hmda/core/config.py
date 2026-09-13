@@ -10,6 +10,7 @@ import os
 from pathlib import Path
 from typing import Any, Mapping, MutableMapping
 
+from dotenv import dotenv_values
 import yaml
 
 from hmda.core.exceptions import (
@@ -149,13 +150,45 @@ class ConfigLoader:
 
         self._apply_overrides(values, overrides or {})
         secret_paths: set[tuple[str, ...]] = set()
+        runtime_environment = (
+            self._load_runtime_environment()
+            if environment is None
+            else environment
+        )
         resolved = self._resolve_environment(
             values,
-            environment if environment is not None else os.environ,
+            runtime_environment,
             secret_paths,
         )
         self._validate(resolved)
         return ConfigBundle(resolved, tuple(sources), frozenset(secret_paths))
+
+    def _load_runtime_environment(self) -> dict[str, str]:
+        """Nạp local.env nếu có; biến process luôn có quyền ưu tiên cao hơn."""
+
+        runtime_environment: dict[str, str] = {}
+        local_env_path = self.config_dir / "local.env"
+        if local_env_path.is_file():
+            try:
+                local_values = dotenv_values(
+                    dotenv_path=local_env_path,
+                    encoding="utf-8",
+                    interpolate=False,
+                )
+            except (OSError, UnicodeError) as exc:
+                raise ConfigurationError(
+                    "Không thể đọc file môi trường local",
+                    field_path="local.env",
+                ) from exc
+            runtime_environment.update(
+                {
+                    str(key): str(value)
+                    for key, value in local_values.items()
+                    if value is not None
+                }
+            )
+        runtime_environment.update(os.environ)
+        return runtime_environment
 
     @staticmethod
     def _apply_overrides(values: MutableMapping[str, Any], overrides: Mapping[str, Any]) -> None:
@@ -254,3 +287,34 @@ class ConfigLoader:
                 "Không được đặt method khi preprocessing còn pending",
                 field_path="preprocessing.method",
             )
+
+        connection = values.get("database", {}).get("connection", {})
+        if isinstance(connection, Mapping):
+            port = connection.get("port")
+            if port is not None:
+                try:
+                    port_number = int(port)
+                except (TypeError, ValueError) as exc:
+                    raise ConfigurationError(
+                        "Port database phải là số nguyên",
+                        field_path="database.connection.port",
+                    ) from exc
+                if not 1 <= port_number <= 65535:
+                    raise ConfigurationError(
+                        "Port database phải nằm trong khoảng 1..65535",
+                        field_path="database.connection.port",
+                    )
+
+            sslmode = connection.get("sslmode")
+            if sslmode not in {None, "require", "verify-ca", "verify-full"}:
+                raise ConfigurationError(
+                    "SSL mode database không được hỗ trợ",
+                    field_path="database.connection.sslmode",
+                )
+
+            channel_binding = connection.get("channel_binding")
+            if channel_binding not in {None, "require", "prefer", "disable"}:
+                raise ConfigurationError(
+                    "Channel binding database không được hỗ trợ",
+                    field_path="database.connection.channel_binding",
+                )

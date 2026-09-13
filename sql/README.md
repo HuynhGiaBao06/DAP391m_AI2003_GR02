@@ -1,6 +1,6 @@
 # SQL
 
-Migrations có phiên bản nằm trong `migrations/`; truy vấn đối soát/quality nằm trong `quality/`. Hiện chưa có migration, kết nối PostgreSQL hoặc schema đã tạo; tên bên dưới là hợp đồng dự kiến của Phase 2.
+Migrations có phiên bản nằm trong `migrations/`; truy vấn đối soát/quality nằm trong `quality/`. Migration Phase 2 và PostgreSQL adapter đã được chuẩn bị offline nhưng chưa áp dụng vào Neon hoặc bất kỳ DB thật nào.
 
 ## Ranh giới trách nhiệm
 
@@ -10,13 +10,13 @@ Migrations có phiên bản nằm trong `migrations/`; truy vấn đối soát/q
 - `audit`: quality result, sự kiện công bố và metadata truy vết.
 - `results`: model/run/predictions/metrics/explanation/fairness đã công bố cho read service.
 
-Tên schema/bảng cuối cùng phải được khóa trước migration đầu tiên. Python phụ trách preprocessing/model; SQL phụ trách lưu trữ, constraint, transaction, truy vấn và đối soát. Không duy trì hai phiên bản logic nghiệp vụ mâu thuẫn.
+Schema hiện hành là `hmda_staging`, `hmda_raw` và `hmda_audit`; các bảng raw giữ nguyên 18 token nguồn dưới dạng `TEXT`. Python phụ trách preprocessing/model; SQL phụ trách lưu trữ, constraint, transaction, truy vấn và đối soát. Không duy trì hai phiên bản logic nghiệp vụ mâu thuẫn.
 
 ## Migration
 
-Mỗi migration có version, mục đích, forward change, kiểm tra sau áp dụng và rollback hoặc recovery plan. Không sửa migration đã dùng trên DB chung; tạo migration mới. Thay đổi destructive cần backup/đánh giá tác động và quyền rõ trước khi chạy.
+`001_hmda_phase2_schema` tạo schema, bảng, constraint và view READY; `002_hmda_phase2_permissions` tạo group role và quyền tối thiểu. Mỗi migration có cặp `.up.sql`/`.down.sql`; file đã áp dụng trên DB không được sửa mà phải tạo version mới. Các file down là recovery cho DB test hoặc tình huống đã đánh giá tác động, không phải lệnh rollback mặc định trên DB dùng chung.
 
-Notebook không chạy `drop`, `truncate`, `replace` hoặc migration. Tài khoản runtime tách quyền đọc, ingest và migration; connection detail lấy từ môi trường, không nằm trong SQL hay log.
+Notebook không chạy `drop`, `truncate`, `replace` hoặc migration. Tài khoản runtime tách quyền đọc, ingest và migration; connection detail lấy từ môi trường, không nằm trong SQL hay log. Migration dùng cú pháp tương thích PostgreSQL 14 trở lên; phiên bản Neon thực tế vẫn phải được xác minh khi có quyền DB.
 
 ## Ingestion và snapshot
 

@@ -28,6 +28,18 @@ class DataContractError(HMDAError):
     """Đầu vào hoặc đầu ra không thỏa hợp đồng dữ liệu."""
 
 
+class SourceIdentityError(DataContractError):
+    """Source identity hoặc checksum không thỏa hợp đồng."""
+
+
+class DataLoadError(DataContractError):
+    """Source bytes không thể được parse mà vẫn giữ hợp đồng raw."""
+
+
+class DataValidationError(DataContractError):
+    """Cấu hình hoặc payload không thể được quality validator đánh giá."""
+
+
 class RepositoryError(HMDAError):
     """Repository không thể hoàn thành thao tác lưu trữ."""
 
