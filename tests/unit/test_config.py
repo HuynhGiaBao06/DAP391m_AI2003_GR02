@@ -47,10 +47,81 @@ def test_repository_configs_load_without_real_database_credentials() -> None:
     bundle = ConfigLoader().load(environment={})
 
     assert bundle.get("project.name") == "hmda-project"
-    assert bundle.get("database.status") == "pending_connection"
+    assert bundle.get("database.status") == "configured_pending_db_verification"
     assert bundle.get("database.connection.password") is None
+    assert bundle.get("database.connection.sslmode") == "require"
+    assert bundle.get("database.connection.channel_binding") == "require"
     assert bundle.get("preprocessing.status") == "pending_decision"
+    assert bundle.get("data.cohort.filters.action_taken") == ["0", "1", "2"]
+    assert bundle.get("schema.columns.action_taken.mapping_status") == (
+        "VERIFIED_USER_CONFIRMED_2026_09_11"
+    )
+    action_rule = next(
+        rule
+        for rule in bundle.get("quality.rules")
+        if rule["rule_id"] == "HMDA_FILTERED_004_ACTION_DOMAIN"
+    )
+    assert action_rule["params"]["values"] == ["0", "1", "2"]
     assert len(bundle.config_hash()) == 64
+
+
+def test_local_env_is_loaded_and_process_environment_has_priority(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _write_configs(tmp_path)
+    (tmp_path / "local.env").write_text(
+        "TEST_SECRET=file-secret\n",
+        encoding="utf-8",
+    )
+    monkeypatch.delenv("TEST_SECRET", raising=False)
+
+    from_file = _loader(tmp_path).load()
+    assert from_file.get("project.secret_value") == "file-secret"
+    assert from_file.redacted()["project"]["secret_value"] == REDACTED
+    assert "file-secret" not in from_file.canonical_json()
+
+    monkeypatch.setenv("TEST_SECRET", "process-secret")
+    from_process = _loader(tmp_path).load()
+    assert from_process.get("project.secret_value") == "process-secret"
+    assert "process-secret" not in from_process.canonical_json()
+
+
+def test_explicit_environment_does_not_read_local_env(tmp_path: Path) -> None:
+    _write_configs(tmp_path)
+    (tmp_path / "local.env").write_text(
+        "TEST_SECRET=file-secret\n",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(MissingEnvironmentVariableError, match="TEST_SECRET"):
+        _loader(tmp_path).load(environment={})
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("port", "not-a-port", "Port database"),
+        ("sslmode", "disable", "SSL mode database"),
+        ("channel_binding", "unknown", "Channel binding database"),
+    ],
+)
+def test_invalid_database_connection_options_fail(
+    tmp_path: Path, field: str, value: str, message: str
+) -> None:
+    files = dict(MINIMAL_FILES)
+    files["database.yaml"] = f"""
+connection:
+  {field}: {value}
+"""
+    _write_configs(tmp_path, files)
+    loader = ConfigLoader(
+        ProjectPaths.discover(),
+        config_dir=tmp_path,
+        filenames=("project.yaml", "logging.yaml", "preprocessing.yaml", "database.yaml"),
+    )
+
+    with pytest.raises(ConfigurationError, match=message):
+        loader.load(environment={"TEST_SECRET": "fixture-secret"})
 
 
 def test_secret_is_resolved_but_redacted_from_serialized_evidence(tmp_path: Path) -> None:

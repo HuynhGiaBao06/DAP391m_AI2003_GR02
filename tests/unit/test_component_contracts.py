@@ -66,11 +66,8 @@ class FakeRepository:
     def __init__(self) -> None:
         self.snapshot: SnapshotDescriptor | None = None
 
-    def stage(self, batch: DataBatch[list[dict[str, object]]]) -> str:
-        return "fixture-ingestion"
-
-    def publish(self, snapshot: SnapshotDescriptor) -> None:
-        self.snapshot = snapshot
+    def transaction(self):
+        return object()
 
     def get_ready(self, snapshot_id: str) -> SnapshotDescriptor:
         assert self.snapshot is not None

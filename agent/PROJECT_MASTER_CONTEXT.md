@@ -2,13 +2,13 @@
 
 **Loại tài liệu:** bản tóm tắt dẫn xuất để đọc nhanh; không phải nguồn kiến trúc độc lập.
 
-**Nguồn chuẩn:** [HMDA Project Master Main](../docs/HMDA_Project_Master_Main.docx), phiên bản 1.1 ngày 09/09/2026.
+**Nguồn chuẩn:** [HMDA Project Master Main](../docs/HMDA_Project_Master_Main.docx), phiên bản 1.2 ngày 11/09/2026.
 
-**SHA-256 nguồn tại lần đồng bộ:** `FB9F8F29ED72951491A3434C45404D98D8873EB8E7B11F592000FE685167340E`.
+**Checksum nguồn:** được quản lý trong evidence nội bộ của lần đồng bộ, không ghi giá trị định danh trực tiếp trong tài liệu dùng chung.
 
-**Đồng bộ:** 09/09/2026.
+**Đồng bộ:** 12/09/2026.
 
-**Chia sẻ:** được phép theo dõi trong Git để thành viên và agent dùng cùng bản context; phải rà soát lại khi hash nguồn thay đổi.
+**Chia sẻ:** được phép theo dõi trong Git để thành viên và agent dùng cùng bản context; phải rà soát lại khi phiên bản hoặc nội dung nguồn thay đổi.
 
 Nếu hash DOCX khác giá trị trên, coi file này đã cũ. Agent phải đọc lại DOCX, xác định phần thay đổi và cập nhật context trước khi dùng nó để quyết định kiến trúc hoặc nghiệm thu. Không tự sửa DOCX để khớp bản tóm tắt.
 
@@ -26,6 +26,8 @@ Khi context này mâu thuẫn với DOCX cùng hash, dùng DOCX và báo lỗi t
 
 Dự án xây dựng một quy trình Data Science tái lập trên HMDA New York 2024: chuẩn bị dữ liệu, so sánh năm model phân loại ba lớp, nghiên cứu GSV/Shapley–Lorenz, đánh giá fairness theo giới tính/county và triển khai kết quả qua Web API.
 
+Bài toán nghiên cứu tách hai điểm khác nhau trong mortgage application funnel: quyết định tín dụng giữa phê duyệt và từ chối, rồi conversion sau phê duyệt giữa khoản vay được phát sinh và `Approved but not accepted`. Trạng thái thứ hai giúp quan sát post-approval fallout có liên quan đến quản trị pipeline, nhưng HMDA không ghi nguyên nhân cụ thể của từng hồ sơ và không cho phép định lượng trực tiếp chi phí, doanh thu hay tổn thất hedging. New York và năm 2024 là phạm vi thực nghiệm; county chỉ là chiều địa lý của RQ3, không phải lý do kinh doanh của nghiên cứu.
+
 Ba RQ:
 
 - **RQ1:** so sánh Logistic Regression, Decision Tree, Random Forest, XGBoost và MLP; macro-F1 validation là metric chọn model chính.
@@ -33,6 +35,8 @@ Ba RQ:
 - **RQ3:** đánh giá chênh lệch Male/Female toàn New York và trong từng county đủ điều kiện, rồi so mức gap giữa county.
 
 Phần bắt buộc: New York 2024, năm model và baseline, ba RQ, Web API/giao diện, mã nguồn, báo cáo, slide, AI Audit Log và hướng dẫn tái lập. Bang đối chiếu, tuning/CV sâu, SL theo nhóm và mitigation là mở rộng có điều kiện.
+
+Web API/giao diện là đầu ra triển khai của toàn dự án trong Master, không thuộc nội dung nghiên cứu RQ1–RQ3 của Research Plan.
 
 Output phản ánh trạng thái xử lý hồ sơ lịch sử. Không gọi nó là xác suất vỡ nợ, credit score hoặc quyết định cấp tín dụng thực tế.
 

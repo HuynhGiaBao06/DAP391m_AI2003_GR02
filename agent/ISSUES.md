@@ -1,6 +1,6 @@
 # Sổ vấn đề
 
-Cập nhật: 2026-09-09. Giữ 12 mã RQ-I01–RQ-I12 và 5 mã TECH-001–TECH-005 từ Master. TECH-004 đã `RESOLVED` bằng evidence Phase 1 và chờ review độc lập để `CLOSED`; các mục còn lại giữ `OPEN`.
+Cập nhật: 2026-09-12. Giữ 12 mã RQ-I01–RQ-I12 và 5 mã TECH-001–TECH-005 từ Master; bổ sung 2 issue dữ liệu quan sát. TECH-004 đã `CLOSED` sau review độc lập Phase 1; các issue xuyên nhiều phase chỉ được cập nhật phần bằng chứng G1, không đóng thay cho gate sau.
 
 ## Cách ghi và đóng issue
 
@@ -48,7 +48,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có bằng chứng runtime hoặc evidence đóng issue.
 - Task chuẩn bị: [TASK-004](tasks/TASK-004.md), [TASK-007](tasks/TASK-007.md); contract gần hạn tại [TASK-014](tasks/TASK-014.md) và data/schema thật tại [TASK-021](tasks/TASK-021.md); kiểm mapping model/API vẫn tách ở phase sau.
 - Điều kiện giải quyết: Đối chiếu nhãn, thứ tự xác suất và báo cáo/UI; kiểm ví dụ và end-to-end tại phase triển khai.
-- Lịch sử: 2026-09-09 kế thừa từ Master và bổ sung cách theo dõi; vẫn OPEN.
+- Lịch sử: 2026-09-09 kế thừa từ Master và bổ sung cách theo dõi. Ngày 2026-09-11, TASK-021 quan sát file local dùng token nội bộ `0/1/2`; người dùng xác nhận đây là mapping chủ ý từ HMDA `1/2/3`. Contract dữ liệu đã đồng bộ nhưng kiểm model/API end-to-end chưa có, nên RQ-I04 vẫn OPEN; DATA-001 chuyển `RESOLVED`.
 
 ## RQ-I05 County thiếu mẫu; ngưỡng mẫu số, CI và metric không xác định.
 
@@ -88,7 +88,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có bằng chứng runtime hoặc evidence đóng issue.
 - Task chuẩn bị: [TASK-004](tasks/TASK-004.md); source identity/snapshot/data contract và integration gần hạn tại [TASK-017](tasks/TASK-017.md), [TASK-019](tasks/TASK-019.md), [TASK-021](tasks/TASK-021.md), [TASK-023](tasks/TASK-023.md) và [TASK-024](tasks/TASK-024.md); split/join ở phase sau tiếp tục tách khi đến lượt.
 - Điều kiện giải quyết: Đối soát nguồn/snapshot/split và join theo khóa; manifests và integration test trên đầu ra thực.
-- Lịch sử: 2026-09-09 kế thừa từ Master và bổ sung cách theo dõi; vẫn OPEN.
+- Lịch sử: 2026-09-09 kế thừa từ Master và bổ sung cách theo dõi. Ngày 2026-09-11, TASK-017 triển khai source identity/hash/record ID; TASK-019 thêm manifest, atomic export và readback theo `record_id` bằng fixture. Split/join và đối soát end-to-end trên dữ liệu/DB thật chưa có nên issue vẫn OPEN.
 
 ## RQ-I09 Quy ước OvR/DPD/EOD và library version; kiểm ví dụ nhỏ.
 
@@ -138,7 +138,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có evidence triển khai hoặc đóng.
 - Task triển khai: [TASK-020](tasks/TASK-020.md), [TASK-022](tasks/TASK-022.md), [TASK-023](tasks/TASK-023.md) và review [TASK-024](tasks/TASK-024.md).
 - Điều kiện giải quyết: Kiểm concurrency, retry/idempotency và rollback trên DB; snapshot READY chỉ công bố toàn vẹn.
-- Lịch sử: 2026-09-09 kế thừa từ Master; cấu trúc/rules đã có không đủ để đóng rủi ro này.
+- Lịch sử: 2026-09-09 kế thừa từ Master. Ngày 2026-09-11, TASK-019 kiểm atomic publish/retry/identity collision, TASK-020 kiểm idempotency/rollback bằng fake và TASK-022 triển khai unique key, transaction, advisory lock cùng READY-only view; migration/recovery/ACL đã đạt trên Neon PostgreSQL 18.6 branch test. Chưa có concurrency ingestion thật nên issue vẫn OPEN.
 
 ## TECH-002 CSV/DB khác kiểu, mất token hoặc mã FIPS
 
@@ -148,7 +148,7 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có evidence triển khai hoặc đóng.
 - Task triển khai: [TASK-017](tasks/TASK-017.md)–[TASK-019](tasks/TASK-019.md), [TASK-021](tasks/TASK-021.md)–[TASK-024](tasks/TASK-024.md).
 - Điều kiện giải quyết: Kiểm export/readback theo khóa và nội dung; giữ schema/token/count, checksum và recovery.
-- Lịch sử: 2026-09-09 kế thừa từ Master; cấu trúc/rules đã có không đủ để đóng rủi ro này.
+- Lịch sử: 2026-09-09 kế thừa từ Master. Ngày 2026-09-11, TASK-017 kiểm token/blank, source checksum và technical ID; TASK-018 thêm quality rule generic; TASK-019 kiểm serialization cấu hình được và readback theo khóa bằng fixture. TASK-021 đã đối chiếu schema/token file local và phát hiện `county_code` bị biểu diễn dạng số thực; TASK-022 giữ toàn bộ 18 cột raw bằng `TEXT` và migration đạt trên PostgreSQL 18.6. Chưa có DB round-trip nên issue vẫn OPEN và liên kết DATA-002.
 
 ## TECH-003 Artifact khác schema hoặc runtime
 
@@ -162,13 +162,13 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 
 ## TECH-004 Config hoặc secret rải rác
 
-- Loại/trạng thái/severity: rủi ro thiết kế / RESOLVED / UNASSESSED. Phase liên quan: 1.
-- Owner: Agent theo yêu cầu người dùng. Reviewer: chưa phân công; xác minh tại TASK-015.
+- Loại/trạng thái/severity: rủi ro thiết kế / CLOSED / UNASSESSED. Phase liên quan: 1.
+- Owner: Agent theo yêu cầu người dùng. Reviewer: Agent độc lập theo yêu cầu người dùng; xác minh tại TASK-015 ngày 2026-09-12.
 - Ảnh hưởng: Tham số không nhất quán hoặc lộ secret, đường dẫn lệ thuộc máy.
-- Nguồn/bằng chứng: mục 8 Project Master v1.1; TASK-010–015, 22/22 unit test, import ngoài repo và kernel smoke ngày 2026-09-09.
-- Task triển khai: [TASK-010](tasks/TASK-010.md)–[TASK-013](tasks/TASK-013.md) và DB config/security tại [TASK-022](tasks/TASK-022.md).
+- Nguồn/bằng chứng: Project Master hiện hành; TASK-010–015; 27/27 test G1, import/root ba vị trí, compile, lock/dependency và kernel smoke ngày 2026-09-12.
+- Task triển khai: [TASK-010](tasks/TASK-010.md)–[TASK-013](tasks/TASK-013.md); review gate tại [TASK-015](tasks/TASK-015.md).
 - Điều kiện giải quyết: Config tập trung, kiểm thiếu/sai, path độc lập cwd và test logger không lộ secret; .gitignore riêng không đủ đóng mục này.
-- Lịch sử: 2026-09-09 triển khai config tập trung, path độc lập `cwd`, secret redaction và logger idempotent; chuyển `RESOLVED`, chưa `CLOSED` trước review độc lập.
+- Lịch sử: 2026-09-09 triển khai config tập trung, path độc lập `cwd`, secret redaction và logger idempotent; chuyển `RESOLVED`. Ngày 2026-09-11 bổ sung regression test redaction sau một lỗi ở tầng kết nối. Ngày 2026-09-12, review độc lập chạy lại bằng fixture không chứa secret thật, xác nhận config/logging/path và kernel đạt; chuyển `CLOSED` trong phạm vi Phase 1.
 
 ## TECH-005 State/task ghi DONE nhưng thiếu bằng chứng
 
@@ -178,7 +178,28 @@ Tên người thực hiện/reviewer và hạn hiện chưa phân công; vai tr�
 - Nguồn/bằng chứng: mục 8 Project Master v1.1; chưa có evidence triển khai hoặc đóng.
 - Task review gần hạn: [TASK-015](tasks/TASK-015.md) cho G1 và [TASK-024](tasks/TASK-024.md) cho G2; các phase sau tiếp tục liên kết khi được phân rã.
 - Điều kiện giải quyết: Đối chiếu tiêu chí và bằng chứng của task/gate; sửa trạng thái lệch, review khi bàn giao và tái lập cuối dự án.
-- Lịch sử: 2026-09-09 kế thừa từ Master; cấu trúc/rules đã có không đủ để đóng rủi ro này.
+- Lịch sử: 2026-09-09 kế thừa từ Master. Ngày 2026-09-12, tiêu chí và evidence G1 được review độc lập; TASK-009/TASK-015 chỉ chuyển `DONE` sau khi 27/27 test G1, compile, lock/dependency, import ba vị trí và kernel smoke đạt. Control này đạt cho G1 nhưng issue vẫn `OPEN` vì còn áp dụng cho các gate khác.
+
+## Vấn đề mới từ dữ liệu thật
+
+## DATA-001 Mapping `action_taken` chưa được ghi đúng vào contract
+
+- Loại/trạng thái/severity: sai lệch contract / RESOLVED / CRITICAL trước xử lý. Phase liên quan: 2–8.
+- Owner: Agent xử lý tại TASK-021. Reviewer: chưa phân công; cần xác minh khi review G2.
+- Ảnh hưởng trước xử lý: quality rule coi 208.818/293.301 dòng có token `0` là lỗi và chặn snapshot, dù file filtered chủ ý dùng target zero-based.
+- Nguồn/bằng chứng: người dùng xác nhận ngày 2026-09-11; mapping `0→HMDA 1 Loan originated`, `1→HMDA 2 Approved but not accepted`, `2→HMDA 3 Application denied`; phân bố `0=208.818`, `1=9.942`, `2=74.541` trên file hash `27f6dd99a55e07b9c95b943491c919ee0822d36790e900c999e35e884a095eee`.
+- Task xử lý: [TASK-021](tasks/TASK-021.md); data/schema/quality config, protocol và source-contract test đã đồng bộ.
+- Điều kiện đóng: reviewer xác nhận mapping được giữ đúng qua ingestion, model probability và API/report; trước đó giữ `RESOLVED`, không quay lại coi `0` là lỗi raw.
+- Lịch sử: 2026-09-11 OPEN vì chưa biết mapping; cùng ngày người dùng xác nhận mapping chủ ý và implementation/test được sửa, chuyển RESOLVED.
+
+## DATA-002 `county_code` bị xuất thành chuỗi số thực
+
+- Loại/trạng thái/severity: lỗi dữ liệu quan sát / OPEN / MAJOR. Phase liên quan: 2, 3, 6.
+- Owner: Agent ghi nhận tại TASK-021; người tạo/export dữ liệu cần cung cấp nguồn đúng kiểu. Reviewer: chưa phân công.
+- Ảnh hưởng: 291.922/293.301 dòng nonblank có dạng như `36001.0`, không khớp FIPS 5 chữ số; có thể phá join, county grouping và fairness denominator. 1.379 dòng county blank được giữ riêng, không tự sửa.
+- Nguồn/bằng chứng: đọc streaming toàn bộ cùng file/hash DATA-001; regex `^[0-9]{5}$` thất bại cho toàn bộ county nonblank; LEI 20 ký tự không có lỗi định dạng trong phép kiểm này.
+- Task xử lý: [TASK-021](tasks/TASK-021.md) khóa source; TASK-023 kiểm round-trip sau khi có nguồn sửa đúng.
+- Điều kiện giải quyết: tái xuất `county_code` dưới dạng string từ nguồn có provenance, bảo toàn token thiếu; không sửa file raw tại chỗ; chạy lại quality/source-contract test và review.
 
 ## Ghi vấn đề mới
 

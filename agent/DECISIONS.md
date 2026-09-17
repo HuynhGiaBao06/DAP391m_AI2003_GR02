@@ -58,11 +58,20 @@ Phạm vi chia sẻ hồ sơ agent của quyết định này được mở rộ
 
 ## DEC-009 Runtime và dependency nền Phase 1
 
-- Ngày: 2026-09-09. Trạng thái: IMPLEMENTED; chờ xác nhận G1 tại TASK-015.
+- Ngày: 2026-09-09 / xác minh 2026-09-12. Trạng thái: ACCEPTED/VERIFIED tại G1.
 - Chọn Python 3.13.x, máy thử dùng 3.13.9; quản lý môi trường/lock bằng `uv` và `uv.lock`; package `hmda-project` dùng `src` layout và editable install.
 - Runtime dependency hiện chỉ có PyYAML 6.x. Nhóm dev/test/notebook hiện chỉ có pytest 8.x và ipykernel 6.x; thư viện dữ liệu/model/API chỉ thêm khi task tương ứng thực sự cần.
 - Kernel dùng tên `hmda-project`, display name `Python (HMDA Project)`, trỏ tới interpreter của `.venv`; không sửa `sys.path` trong notebook.
-- Bằng chứng: TASK-010 và TASK-015. Quyết định đóng PEND-03; không chốt DB, data, preprocessing hoặc stack Phase 2–7.
+- Bằng chứng: TASK-010 và review độc lập TASK-015; 27/27 test G1, compile, lock/dependency, import/root ba vị trí và kernel smoke đạt ngày 2026-09-12. Quyết định đóng PEND-03 và G1; không chốt DB, data, preprocessing hoặc stack Phase 2–7.
+
+## DEC-010 Business context cho bài toán HMDA ba lớp
+
+- Ngày: 2026-09-12. Trạng thái: ACCEPTED/IMPLEMENTED theo yêu cầu trực tiếp của người dùng.
+- Vấn đề kinh doanh: mortgage application funnel có hai điểm cần phân biệt — credit decision giữa phê duyệt/từ chối và post-approval conversion giữa khoản vay được phát sinh/`Approved but not accepted`.
+- Cách nối RQ: RQ1 kiểm tra khả năng phân biệt cả denial và post-approval fallout; RQ2 mô tả đặc trưng quan sát được gắn với dự đoán từng lớp; RQ3 audit tỷ lệ nhãn, tỷ lệ dự đoán và error rate giữa Male/Female toàn bang và trong county đủ điều kiện.
+- Giới hạn: New York và năm 2024 là phạm vi thực nghiệm; county là chiều địa lý của RQ3. HMDA không ghi nguyên nhân cụ thể của từng hồ sơ lớp 2, không đo trực tiếp chi phí/doanh thu/tổn thất hedging và không cho phép kết luận nhân quả, creditworthiness hoặc discrimination từ mô hình và group gaps.
+- Phạm vi tài liệu: Project Master v1.2, Project Planning v1.2 và Research Plan v2.2. API/Web vẫn là deliverable triển khai trong Master nhưng nằm ngoài nội dung nghiên cứu RQ1–RQ3.
+- Bằng chứng: CFPB Regulation C official interpretations; OCC Comptroller's Handbook, Mortgage Banking, Appendix B; CFPB Intent to Proceed; TASK-025.
 
 ## Các quyết định còn chờ
 
