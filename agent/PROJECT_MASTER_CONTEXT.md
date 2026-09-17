@@ -88,6 +88,8 @@ Manifest giữ source/hash, parent snapshot, schema/config/code/protocol version
 
 `ERROR` chặn publish/bước phụ thuộc; `WARNING` được ghi và xử lý theo protocol. `is_valid` chỉ nghĩa không còn lỗi chặn. Validation/exception bảo vệ production; assert chỉ hỗ trợ invariant trong notebook/test. Phải kiểm idempotency, transaction, rollback/retry và chạy đồng thời trước nghiệm thu dữ liệu.
 
+Ngoại lệ vận hành hiện hành cho G2 tối giản được người dùng chốt ngày 2026-09-13 tại [DEC-011](DECISIONS.md): vẫn bắt buộc transaction/rollback khi lỗi, duplicate/idempotency cơ bản, round-trip thật, quality, reconciliation và snapshot `READY`; concurrency stress, restore drill và reviewer độc lập được hoãn khỏi G2 hiện tại. Đây là ghi chú phạm vi thực thi, không sửa DOCX nguồn và không phải bằng chứng rằng các bước đã chạy.
+
 ## 7. Thiết kế thực nghiệm cốt lõi
 
 RQ1 dùng split đề xuất 70/15/15, stratified theo `action_taken`, seed 42 nếu dữ liệu cho phép. Dùng cùng split cho năm model và baseline lớp phổ biến nhất. Chọn theo macro-F1 validation; báo per-class precision/recall/F1, confusion matrix 3×3, log loss và runtime. Khóa model trước test.

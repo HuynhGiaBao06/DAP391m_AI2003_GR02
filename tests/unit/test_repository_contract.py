@@ -15,8 +15,11 @@ from hmda.data.repository import (
     IngestionDescriptor,
     IngestionRequest,
     IngestionStatus,
+    RecordSetSummary,
     RepositoryUnitOfWork,
     make_idempotency_key,
+    require_reconciled_record_sets,
+    summarize_record_set,
 )
 from hmda.data.source_identity import SourceIdentity
 
@@ -40,6 +43,10 @@ class FakeRepository:
             return self.ready_snapshots[snapshot_id]
         except KeyError as exc:
             raise RepositoryError("Snapshot không READY hoặc không tồn tại") from exc
+
+    def get_ready_records(self, snapshot_id: str):
+        self.get_ready(snapshot_id)
+        return ()
 
 
 class FakeUnitOfWork:
@@ -105,6 +112,22 @@ class FakeUnitOfWork:
         state = self._open()
         self._require_staging(state, ingestion_id)
         state["quality_results"][ingestion_id] = validation
+
+    def stage_records(self, ingestion_id, records):
+        self._require_staging(self._open(), ingestion_id)
+        return summarize_record_set(records, business_columns=("code", "note"))
+
+    def promote_records(self, ingestion_id, expected):
+        self._require_staging(self._open(), ingestion_id)
+        return expected
+
+    def read_promoted_records(self, ingestion_id):
+        self._require_staging(self._open(), ingestion_id)
+        return ()
+
+    def clear_staged_records(self, ingestion_id, expected_row_count):
+        self._require_staging(self._open(), ingestion_id)
+        return expected_row_count
 
     def stage_snapshot(
         self, ingestion_id: str, snapshot: SnapshotDescriptor
@@ -204,6 +227,63 @@ def _snapshot(status):
         status=status,
         source_id="fixture-source",
     )
+
+
+def _records():
+    return (
+        {
+            "record_id": "1" * 64,
+            "source_row_number": 1,
+            "source_line_number": 2,
+            "code": "001",
+            "note": "",
+        },
+        {
+            "record_id": "2" * 64,
+            "source_row_number": 2,
+            "source_line_number": 3,
+            "code": "002",
+            "note": "Exempt",
+        },
+    )
+
+
+def test_record_set_summary_checks_shape_identity_and_raw_content() -> None:
+    summary = summarize_record_set(_records(), business_columns=("code", "note"))
+
+    assert isinstance(summary, RecordSetSummary)
+    assert summary.row_count == 2
+    assert summary.columns == (
+        "record_id",
+        "source_row_number",
+        "source_line_number",
+        "code",
+        "note",
+    )
+    assert summary.distinct_record_id_count == 2
+    assert len(summary.content_checksum) == 64
+
+    changed = list(_records())
+    changed[1] = {**changed[1], "note": "NA"}
+    changed_summary = summarize_record_set(
+        tuple(changed), business_columns=("code", "note")
+    )
+    with pytest.raises(RepositoryError, match="nội dung"):
+        require_reconciled_record_sets(summary, changed_summary)
+
+
+@pytest.mark.parametrize(
+    ("records", "message"),
+    [
+        ((), "không được rỗng"),
+        ((_records()[1], _records()[0]), "source_row_number"),
+        (({**_records()[0], "record_id": "invalid"},), "record_id"),
+        (({**_records()[0], "code": 1},), "string"),
+    ],
+)
+def test_record_set_summary_rejects_invalid_transport_contract(records, message) -> None:
+    with pytest.raises(RepositoryError, match=message):
+        summarize_record_set(records, business_columns=("code", "note"))
 
 
 def test_idempotency_key_is_deterministic_and_changes_with_logical_identity() -> None:

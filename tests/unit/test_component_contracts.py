@@ -73,6 +73,10 @@ class FakeRepository:
         assert self.snapshot is not None
         return self.snapshot
 
+    def get_ready_records(self, snapshot_id: str):
+        self.get_ready(snapshot_id)
+        return []
+
 
 class FakeEDAPipeline:
     def __init__(self, dependencies: PipelineDependencies[list[dict[str, object]]]) -> None:

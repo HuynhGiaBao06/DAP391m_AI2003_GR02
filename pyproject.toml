@@ -26,7 +26,8 @@ include = ["hmda*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra --basetemp=.pytest/.pytest_tmp"
+cache_dir = ".pytest/.pytest_cache"
 markers = [
     "integration: requires an external service or multi-component test environment",
 ]

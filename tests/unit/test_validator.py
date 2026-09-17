@@ -230,6 +230,62 @@ def test_invalid_pattern_rule_fails_explicitly() -> None:
         ConfigurableDataValidator().validate(_batch(()), config=config)
 
 
+def test_shape_and_exact_row_excess_rules_use_batch_contract() -> None:
+    rows = (
+        {"record_id": "r1", "a": "1", "b": "x"},
+        {"record_id": "r2", "a": "1", "b": "x"},
+        {"record_id": "r3", "a": "2", "b": "y"},
+    )
+    batch = DataBatch(
+        payload=rows,
+        source=SourceDescriptor(
+            "fixture-source", "v1", "memory://fixture", "a" * 64
+        ),
+        metadata={"content_checksum": "a" * 64, "columns": ("a", "b")},
+    )
+    config = {
+        "sample_id_field": "record_id",
+        "rules": [
+            {
+                "rule_id": "COLUMN_ORDER",
+                "type": "exact_columns",
+                "layer": "raw",
+                "severity": "ERROR",
+                "params": {"columns": ["b", "a"]},
+            },
+            {
+                "rule_id": "EXACT_ROW_EXCESS",
+                "type": "duplicate_row_excess",
+                "layer": "raw",
+                "severity": "WARNING",
+                "params": {"fields": ["a", "b"]},
+            },
+            {
+                "rule_id": "ROW_COUNT",
+                "type": "row_count",
+                "layer": "raw",
+                "severity": "ERROR",
+                "params": {"expected": 4},
+            },
+        ],
+    }
+
+    result = ConfigurableDataValidator().validate(batch, config=config)
+
+    assert [(issue.rule_id, issue.affected_count) for issue in result.issues] == [
+        ("COLUMN_ORDER", 1),
+        ("EXACT_ROW_EXCESS", 1),
+        ("ROW_COUNT", 1),
+    ]
+    assert result.issues[1].sample_ids == ("r2",)
+    assert result.metadata == {
+        "evaluated_rule_count": 3,
+        "failed_rule_count": 3,
+        "error_count": 2,
+        "warning_count": 1,
+    }
+
+
 @pytest.mark.parametrize(
     "rules, message",
     [

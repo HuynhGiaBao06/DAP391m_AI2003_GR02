@@ -76,13 +76,16 @@ class ConfigurableDataValidator:
     SUPPORTED_RULE_TYPES = frozenset(
         {
             "required_columns",
+            "exact_columns",
             "field_type",
             "allowed_values",
             "missing_key",
             "duplicate_key",
+            "duplicate_row_excess",
             "checksum_match",
             "matches_pattern",
             "parseable_number",
+            "row_count",
         }
     )
 
@@ -201,13 +204,16 @@ class ConfigurableDataValidator:
     ) -> QualityIssue | None:
         evaluators = {
             "required_columns": self._required_columns,
+            "exact_columns": self._exact_columns,
             "field_type": self._field_type,
             "allowed_values": self._allowed_values,
             "missing_key": self._missing_key,
             "duplicate_key": self._duplicate_key,
+            "duplicate_row_excess": self._duplicate_row_excess,
             "checksum_match": self._checksum_match,
             "matches_pattern": self._matches_pattern,
             "parseable_number": self._parseable_number,
+            "row_count": self._row_count,
         }
         affected, denominator, affected_rows, message = evaluators[spec.rule_type](
             spec.params, rows, batch
@@ -233,6 +239,15 @@ class ConfigurableDataValidator:
         actual_columns = set().union(*(row.keys() for row in rows)) if rows else set()
         missing = [column for column in columns if column not in actual_columns]
         return len(missing), len(columns), (), "Thiếu required column"
+
+    @staticmethod
+    def _exact_columns(params, rows, batch):
+        expected = ConfigurableDataValidator._text_list(params, "columns")
+        actual = batch.metadata.get("columns")
+        if isinstance(actual, (str, bytes)) or not isinstance(actual, Sequence):
+            return 1, 1, (), "Batch thiếu metadata columns để kiểm thứ tự"
+        failed = int(tuple(actual) != expected)
+        return failed, 1, (), "Column order hoặc tập column không khớp contract"
 
     @staticmethod
     def _field_type(params, rows, batch):
@@ -298,6 +313,29 @@ class ConfigurableDataValidator:
         return len(failed), len(rows), failed, "Key bị trùng"
 
     @staticmethod
+    def _duplicate_row_excess(params, rows, batch):
+        fields = ConfigurableDataValidator._text_list(params, "fields")
+        seen: set[tuple[Any, ...]] = set()
+        excess_rows: list[Mapping[str, Any]] = []
+        try:
+            for row in rows:
+                key = tuple(row.get(field_name) for field_name in fields)
+                if key in seen:
+                    excess_rows.append(row)
+                else:
+                    seen.add(key)
+        except TypeError as exc:
+            raise DataValidationError(
+                "duplicate_row_excess chỉ hỗ trợ giá trị có thể hash"
+            ) from exc
+        return (
+            len(excess_rows),
+            len(rows),
+            tuple(excess_rows),
+            "Dòng dư trùng chính xác trên các field đã chọn",
+        )
+
+    @staticmethod
     def _checksum_match(params, rows, batch):
         expected = ConfigurableDataValidator._required_text(params, "expected")
         actual = batch.metadata.get("content_checksum", batch.source.checksum)
@@ -340,6 +378,16 @@ class ConfigurableDataValidator:
 
         failed = tuple(row for row in rows if not is_parseable(row.get(field_name)))
         return len(failed), len(rows), failed, "Field không parse được thành số"
+
+    @staticmethod
+    def _row_count(params, rows, batch):
+        expected = params.get("expected")
+        if isinstance(expected, bool) or not isinstance(expected, int) or expected < 0:
+            raise DataValidationError(
+                "row_count.params.expected phải là số nguyên không âm"
+            )
+        failed = int(len(rows) != expected)
+        return failed, 1, (), "Row count không khớp contract"
 
     @staticmethod
     def _text_list(params: Mapping[str, Any], key: str) -> tuple[str, ...]:

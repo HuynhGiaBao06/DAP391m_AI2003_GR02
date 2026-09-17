@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
 import csv
-from dataclasses import asdict, dataclass, replace
+from dataclasses import asdict, dataclass, is_dataclass, replace
 from datetime import datetime, timezone
+from enum import Enum
 import json
 import os
 from pathlib import Path
@@ -28,6 +29,17 @@ from hmda.data.validator import require_publishable
 PayloadT = TypeVar("PayloadT")
 _SHA256_PATTERN = re.compile(r"[0-9a-f]{64}")
 _SAFE_ID_PATTERN = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,127}")
+_SENSITIVE_FRAGMENTS = (
+    "password",
+    "secret",
+    "credential",
+    "api_key",
+    "access_token",
+    "refresh_token",
+    "auth_token",
+    "connection_uri",
+    "dsn",
+)
 
 
 @runtime_checkable
@@ -100,6 +112,7 @@ class SnapshotManifest:
     quality_error_count: int
     quality_warning_count: int
     data_checksum: str | None = None
+    quality_checksum: str | None = None
     parent_snapshot_id: str | None = None
     protocol_version: str | None = None
 
@@ -155,12 +168,15 @@ class SnapshotManifest:
                 raise SnapshotError("Snapshot READY không được còn quality ERROR")
             if self.data_checksum is None:
                 raise SnapshotError("Snapshot READY phải có data_checksum")
+            if self.quality_checksum is None:
+                raise SnapshotError("Snapshot READY phải có quality_checksum")
 
     def transition(
         self,
         status: SnapshotStatus,
         *,
         data_checksum: str | None = None,
+        quality_checksum: str | None = None,
     ) -> "SnapshotManifest":
         """Chỉ cho phép STAGING chuyển một lần sang READY hoặc FAILED."""
 
@@ -168,7 +184,12 @@ class SnapshotManifest:
             raise SnapshotError("Snapshot đã kết thúc vòng đời và không thể sửa")
         if status not in {SnapshotStatus.READY, SnapshotStatus.FAILED}:
             raise SnapshotError("STAGING chỉ được chuyển sang READY hoặc FAILED")
-        return replace(self, status=status, data_checksum=data_checksum)
+        return replace(
+            self,
+            status=status,
+            data_checksum=data_checksum,
+            quality_checksum=quality_checksum,
+        )
 
     def to_dict(self) -> dict[str, Any]:
         payload = asdict(self)
@@ -271,8 +292,11 @@ class AtomicSnapshotExporter:
         if final_dir.exists():
             existing = self.load_ready(manifest.snapshot_id)
             if self._same_identity(existing, manifest, serialization):
-                readback = self._read_csv(final_dir / "data.csv", serialization)
-                self._assert_readback(batch.payload, readback, serialization)
+                self._assert_readback(
+                    batch.payload,
+                    self._iter_csv(final_dir / "data.csv", serialization),
+                    serialization,
+                )
                 return existing.to_descriptor()
             raise SnapshotError("snapshot_id đã thuộc một identity READY khác")
 
@@ -281,13 +305,20 @@ class AtomicSnapshotExporter:
         )
         try:
             data_path = staging_dir / "data.csv"
+            quality_path = staging_dir / "quality_report.json"
             self._write_csv(data_path, batch.payload, serialization)
+            self._write_quality_report(quality_path, validation)
             data_checksum = sha256_bytes(data_path.read_bytes())
-            readback = self._read_csv(data_path, serialization)
-            self._assert_readback(batch.payload, readback, serialization)
+            quality_checksum = sha256_bytes(quality_path.read_bytes())
+            self._assert_readback(
+                batch.payload,
+                self._iter_csv(data_path, serialization),
+                serialization,
+            )
             ready = manifest.transition(
                 SnapshotStatus.READY,
                 data_checksum=data_checksum,
+                quality_checksum=quality_checksum,
             )
             self._write_manifest(staging_dir / "manifest.json", ready)
             self._publish_directory(staging_dir, final_dir)
@@ -306,8 +337,11 @@ class AtomicSnapshotExporter:
         snapshot_dir = self.root / snapshot_id
         manifest_path = snapshot_dir / "manifest.json"
         data_path = snapshot_dir / "data.csv"
-        if not manifest_path.is_file() or not data_path.is_file():
-            raise SnapshotError("Snapshot chưa có đủ manifest và data")
+        quality_path = snapshot_dir / "quality_report.json"
+        if not all(
+            path.is_file() for path in (manifest_path, data_path, quality_path)
+        ):
+            raise SnapshotError("Snapshot chưa có đủ manifest, data và quality report")
         try:
             payload = json.loads(manifest_path.read_text(encoding="utf-8"))
         except (OSError, UnicodeError, json.JSONDecodeError) as exc:
@@ -322,6 +356,10 @@ class AtomicSnapshotExporter:
         actual_checksum = sha256_bytes(data_path.read_bytes())
         if actual_checksum != manifest.data_checksum:
             raise SnapshotError("Checksum data.csv không khớp manifest")
+        actual_quality_checksum = sha256_bytes(quality_path.read_bytes())
+        if actual_quality_checksum != manifest.quality_checksum:
+            raise SnapshotError("Checksum quality report không khớp manifest")
+        self._validate_quality_report(quality_path, manifest)
         serialization = SnapshotSerialization(
             columns=manifest.columns,
             null_token=manifest.null_token,
@@ -330,10 +368,30 @@ class AtomicSnapshotExporter:
             line_terminator=manifest.line_terminator,
             record_id_field=manifest.record_id_field,
         )
-        readback = self._read_csv(data_path, serialization)
-        if len(readback) != manifest.row_count:
-            raise SnapshotError("Readback row_count không khớp manifest")
-        _index_unique(readback, serialization.record_id_field, "readback")
+        self._validate_ready_csv(data_path, manifest, serialization)
+        return manifest
+
+    def require_reconciled_ready(
+        self,
+        snapshot_id: str,
+        expected_rows: Sequence[Mapping[str, Any]],
+    ) -> SnapshotManifest:
+        """Đối soát snapshot READY với record kỳ vọng mà không tải lại toàn file."""
+
+        manifest = self.load_ready(snapshot_id)
+        serialization = SnapshotSerialization(
+            columns=manifest.columns,
+            null_token=manifest.null_token,
+            encoding=manifest.encoding,
+            delimiter=manifest.delimiter,
+            line_terminator=manifest.line_terminator,
+            record_id_field=manifest.record_id_field,
+        )
+        self._assert_readback(
+            expected_rows,
+            self._iter_csv(self.root / snapshot_id / "data.csv", serialization),
+            serialization,
+        )
         return manifest
 
     @staticmethod
@@ -404,25 +462,32 @@ class AtomicSnapshotExporter:
         path: Path,
         serialization: SnapshotSerialization,
     ) -> tuple[dict[str, str | None], ...]:
+        return tuple(AtomicSnapshotExporter._iter_csv(path, serialization))
+
+    @staticmethod
+    def _iter_csv(
+        path: Path,
+        serialization: SnapshotSerialization,
+    ) -> Iterable[dict[str, str | None]]:
         try:
             with path.open("r", encoding=serialization.encoding, newline="") as handle:
                 reader = csv.DictReader(handle, delimiter=serialization.delimiter)
                 if tuple(reader.fieldnames or ()) != serialization.columns:
                     raise SnapshotError("Readback column order không khớp")
-                return tuple(
-                    {
+                for row in reader:
+                    yield {
                         column: None if value == serialization.null_token else value
                         for column, value in row.items()
                     }
-                    for row in reader
-                )
+        except SnapshotError:
+            raise
         except (OSError, UnicodeError, csv.Error) as exc:
             raise SnapshotError("Không thể readback data.csv") from exc
 
     @staticmethod
     def _assert_readback(
         source_rows: Sequence[Mapping[str, Any]],
-        readback_rows: Sequence[Mapping[str, Any]],
+        readback_rows: Iterable[Mapping[str, Any]],
         serialization: SnapshotSerialization,
     ) -> None:
         key = serialization.record_id_field
@@ -437,11 +502,44 @@ class AtomicSnapshotExporter:
                 for column in serialization.columns
             }
 
-        expected = tuple(normalized(row) for row in source_rows)
-        expected_by_key = _index_unique(expected, key, "input")
-        actual_by_key = _index_unique(readback_rows, key, "readback")
-        if expected_by_key != actual_by_key:
+        expected_by_key = _index_unique(source_rows, key, "input")
+        seen: set[str] = set()
+        actual_count = 0
+        for row in readback_rows:
+            actual_count += 1
+            value = row.get(key)
+            if value in (None, ""):
+                raise SnapshotError("readback thiếu record_id để đối soát")
+            text_value = str(value)
+            if text_value in seen:
+                raise SnapshotError("readback trùng record_id khi đối soát")
+            seen.add(text_value)
+            expected_row = expected_by_key.get(text_value)
+            if expected_row is None or normalized(expected_row) != normalized(row):
+                raise SnapshotError("Readback không khớp nội dung input theo record_id")
+        if actual_count != len(source_rows) or seen != set(expected_by_key):
             raise SnapshotError("Readback không khớp nội dung input theo record_id")
+
+    @staticmethod
+    def _validate_ready_csv(
+        path: Path,
+        manifest: SnapshotManifest,
+        serialization: SnapshotSerialization,
+    ) -> None:
+        key = serialization.record_id_field
+        seen: set[str] = set()
+        row_count = 0
+        for row in AtomicSnapshotExporter._iter_csv(path, serialization):
+            row_count += 1
+            value = row.get(key)
+            if value in (None, ""):
+                raise SnapshotError("readback thiếu record_id để đối soát")
+            text_value = str(value)
+            if text_value in seen:
+                raise SnapshotError("readback trùng record_id khi đối soát")
+            seen.add(text_value)
+        if row_count != manifest.row_count:
+            raise SnapshotError("Readback row_count không khớp manifest")
 
     @staticmethod
     def _write_manifest(path: Path, manifest: SnapshotManifest) -> None:
@@ -461,6 +559,58 @@ class AtomicSnapshotExporter:
         except Exception:
             temp_path.unlink(missing_ok=True)
             raise
+
+    @staticmethod
+    def _write_quality_report(path: Path, validation: ValidationSummary) -> None:
+        temp_path = path.with_suffix(path.suffix + ".tmp")
+        error_count = _nonnegative_count(
+            validation.metadata.get("error_count", int(not validation.is_valid)),
+            "error_count",
+        )
+        warning_count = _nonnegative_count(
+            validation.metadata.get("warning_count", 0),
+            "warning_count",
+        )
+        payload = {
+            "is_valid": validation.is_valid,
+            "error_count": error_count,
+            "warning_count": warning_count,
+            "metadata": _json_compatible(validation.metadata),
+            "issues": _json_compatible(validation.issues),
+        }
+        content = json.dumps(
+            payload,
+            ensure_ascii=False,
+            sort_keys=True,
+            separators=(",", ":"),
+        ).encode("utf-8")
+        try:
+            with temp_path.open("wb") as handle:
+                handle.write(content)
+                handle.flush()
+                os.fsync(handle.fileno())
+            os.replace(temp_path, path)
+        except Exception:
+            temp_path.unlink(missing_ok=True)
+            raise
+
+    @staticmethod
+    def _validate_quality_report(
+        path: Path,
+        manifest: SnapshotManifest,
+    ) -> None:
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, UnicodeError, json.JSONDecodeError) as exc:
+            raise SnapshotError("Không thể đọc quality report") from exc
+        if not isinstance(payload, Mapping):
+            raise SnapshotError("Quality report phải là JSON object")
+        if payload.get("is_valid") is not True:
+            raise SnapshotError("Quality report của snapshot READY phải hợp lệ")
+        if payload.get("error_count") != manifest.quality_error_count:
+            raise SnapshotError("Quality error_count không khớp manifest")
+        if payload.get("warning_count") != manifest.quality_warning_count:
+            raise SnapshotError("Quality warning_count không khớp manifest")
 
     @staticmethod
     def _same_identity(
@@ -484,6 +634,8 @@ class AtomicSnapshotExporter:
             existing.line_terminator,
             existing.null_token,
             existing.record_id_field,
+            existing.quality_error_count,
+            existing.quality_warning_count,
         ) == (
             candidate.snapshot_id,
             candidate.source_id,
@@ -500,6 +652,8 @@ class AtomicSnapshotExporter:
             serialization.line_terminator,
             serialization.null_token,
             serialization.record_id_field,
+            candidate.quality_error_count,
+            candidate.quality_warning_count,
         )
 
 
@@ -544,6 +698,31 @@ def _serialize_value(value: Any, null_token: str) -> str:
     if serialized == null_token:
         raise SnapshotError("Giá trị chuỗi trùng null_token gây serialization mơ hồ")
     return serialized
+
+
+def _json_compatible(value: Any, path: tuple[str, ...] = ()) -> Any:
+    if is_dataclass(value) and not isinstance(value, type):
+        return _json_compatible(asdict(value))
+    if isinstance(value, Enum):
+        return value.value
+    if isinstance(value, Mapping):
+        converted: dict[str, Any] = {}
+        for key, item in value.items():
+            text_key = str(key)
+            child_path = (*path, text_key)
+            if any(
+                fragment in ".".join(child_path).lower()
+                for fragment in _SENSITIVE_FRAGMENTS
+            ):
+                converted[text_key] = "***REDACTED***" if item is not None else None
+            else:
+                converted[text_key] = _json_compatible(item, child_path)
+        return converted
+    if isinstance(value, (tuple, list)):
+        return [_json_compatible(item, (*path, str(index))) for index, item in enumerate(value)]
+    if value is None or isinstance(value, (str, int, float, bool)):
+        return value
+    raise SnapshotError("Quality report chứa giá trị không thể serialize")
 
 
 def _index_unique(
