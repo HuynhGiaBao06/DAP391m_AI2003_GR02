@@ -1,6 +1,15 @@
-status: configured_pending_db_verification
+status: target_schema_and_acl_deployed_verified
 schema_version: hmda-postgres-v1
 migration_directory: sql/migrations
+target:
+  database: neondb
+  confirmation_status: USER_CONFIRMED_2026_09_13
+  connectivity_status: VERIFIED_READ_ONLY_2026_09_13
+  ddl_privilege_status: VERIFIED_CREATE_SCHEMA_AND_ROLE_2026_09_13
+  schema_deployment_status: DEPLOYED_VERIFIED_2026_09_13
+  local_snapshot_root: data/snapshots/eda
+  read_access_intent: AUTHORIZED_PROJECT_USERS
+  write_owner: BaoHG
 compatibility:
   minimum_postgresql_major: 14
   verified_server_version: "18.6"
@@ -20,7 +29,7 @@ connection:
     env: HMDA_DB_NAME
     required: false
     secret: false
-    default: null
+    default: neondb
   username:
     env: HMDA_DB_USER
     required: false

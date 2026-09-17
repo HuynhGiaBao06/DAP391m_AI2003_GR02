@@ -1,6 +1,6 @@
 # SQL
 
-Migrations có phiên bản nằm trong `migrations/`; truy vấn đối soát/quality nằm trong `quality/`. Migration Phase 2 và PostgreSQL adapter đã được chuẩn bị offline nhưng chưa áp dụng vào Neon hoặc bất kỳ DB thật nào.
+Migrations có phiên bản nằm trong `migrations/`; truy vấn đối soát/quality nằm trong `quality/`. Migration Phase 2 và PostgreSQL adapter đã được kiểm tại TASK-022; migration `001`/`002` đã deploy trên database đích `neondb`. Block 3B đã kiểm COPY/promote/readback bằng fixture 2 dòng trong transaction rồi rollback. Block 3C đã persist 1 ingestion/snapshot READY với 293.301 raw/READY record, quality result và staging=0; TASK-024 đã review và đóng G2 tối giản ngày 2026-09-14.
 
 ## Ranh giới trách nhiệm
 
@@ -20,7 +20,7 @@ Notebook không chạy `drop`, `truncate`, `replace` hoặc migration. Tài kho�
 
 ## Ingestion và snapshot
 
-Đăng ký source/config/schema bằng unique key đủ để chạy lại không nhân bản dữ liệu. Ingestion và công bố snapshot phải dùng transaction/advisory lock hoặc cơ chế tương đương đã kiểm dưới chạy đồng thời. Reader chỉ chọn `READY`; run `FAILED` không được xuất hiện như dữ liệu sẵn dùng.
+Đăng ký source/config/schema bằng unique key đủ để chạy lại không nhân bản dữ liệu. Ingestion và công bố snapshot phải dùng transaction cùng duplicate/idempotency protection cơ bản; reader chỉ chọn `READY` và run `FAILED` không được xuất hiện như dữ liệu sẵn dùng. Concurrency stress được hoãn khỏi G2 tối giản theo DEC-011, không được coi là đã kiểm.
 
 Primary key/foreign key bảo vệ `source_id`, `record_id`, `snapshot_id`, `run_id` và `model_version`. Join predictions với analysis/split trong đúng snapshot/run, có kiểm một-một và row count.
 

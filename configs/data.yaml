@@ -1,11 +1,23 @@
-status: source_profiled_pending_provenance_and_county_format
+status: owner_attested_transport_source_ready
 
 source:
-  source_id: hmda-2024-ny-filter-provisional
-  version: null
-  version_status: PENDING
+  source_id: hmda-2024-ny-filter-baohg
+  version: baohg-hmda-ny-18col-action012-2026-09-13-v1
+  version_kind: INTERNAL_DERIVED_ASSET
+  version_status: VERIFIED_INTERNAL
+  identity_mode: OWNER_ATTESTED_LOCAL_DERIVED
   provenance_url: null
-  provenance_status: PENDING
+  provenance_status: NOT_APPLICABLE_OWNER_ATTESTED
+  attestation:
+    status: VERIFIED_USER_CONFIRMED
+    owner: BaoHG
+    data_admin: BaoHG
+    downloaded_on: '2026-09-13'
+    transformations:
+      - select_18_columns
+      - map_action_taken_hmda_1_2_3_to_internal_0_1_2
+    other_columns_status: USER_CONFIRMED_NO_INTENTIONAL_CHANGES
+    independent_comparison_status: UNAVAILABLE_NO_PREFILTER_FILE
   local_path: data/raw/state_NY_filter.csv
   observed_at: '2026-09-11T12:11:18.6215037+07:00'
   file_modified_at: '2026-09-11T11:20:31.5909635+07:00'
@@ -36,7 +48,9 @@ cohort:
     '0': {hmda_action_taken: '1', meaning: Loan originated}
     '1': {hmda_action_taken: '2', meaning: Application approved but not accepted}
     '2': {hmda_action_taken: '3', meaning: Application denied}
-  publishable: false
-  blocking_reasons:
-    - source URL and source version are not known
+  publishable: true
+  publish_scope: TRANSPORT_SNAPSHOT_ONLY
+  blocking_reasons: []
+  analysis_ready: false
+  analysis_blocking_reasons:
     - county_code nonblank values use float-style strings instead of five-digit FIPS strings

@@ -2,11 +2,12 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass, field, is_dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 import psycopg
 from psycopg.rows import dict_row
@@ -19,12 +20,73 @@ from hmda.data.repository import (
     IngestionDescriptor,
     IngestionRequest,
     IngestionStatus,
+    RecordSetSummary,
+    require_reconciled_record_sets,
+    summarize_record_set,
 )
 from hmda.data.source_identity import SourceIdentity
 
 
 ConnectionFactory = Callable[[], Any]
 _MIGRATION_LOCK_ID = 72405022
+HMDA_BUSINESS_COLUMNS = (
+    "income",
+    "loan_amount",
+    "combined_loan_to_value_ratio",
+    "property_value",
+    "loan_term",
+    "debt_to_income_ratio",
+    "loan_type",
+    "loan_purpose",
+    "lien_status",
+    "occupancy_type",
+    "construction_method",
+    "total_units",
+    "action_taken",
+    "applicant_sex",
+    "state_code",
+    "county_code",
+    "lei",
+    "activity_year",
+)
+_RECORD_COLUMNS = (
+    "record_id",
+    "source_row_number",
+    "source_line_number",
+    *HMDA_BUSINESS_COLUMNS,
+)
+_RECORD_COLUMN_SQL = ", ".join(_RECORD_COLUMNS)
+_STAGING_COPY_SQL = (
+    "COPY hmda_staging.hmda_record "
+    f"(ingestion_id, {_RECORD_COLUMN_SQL}) FROM STDIN"
+)
+_PROMOTE_SQL = f"""
+    INSERT INTO hmda_raw.hmda_record (snapshot_id, {_RECORD_COLUMN_SQL})
+    SELECT run.snapshot_id, {_RECORD_COLUMN_SQL}
+    FROM hmda_staging.hmda_record AS staged
+    JOIN hmda_audit.ingestion_run AS run
+      ON run.ingestion_id = staged.ingestion_id
+    WHERE staged.ingestion_id = %s
+    ON CONFLICT (snapshot_id, record_id) DO NOTHING
+"""
+_STAGING_RECORDS_SQL = f"""
+    SELECT {_RECORD_COLUMN_SQL}
+    FROM hmda_staging.hmda_record
+    WHERE ingestion_id = %s
+    ORDER BY source_row_number
+"""
+_RAW_RECORDS_SQL = f"""
+    SELECT {_RECORD_COLUMN_SQL}
+    FROM hmda_raw.hmda_record
+    WHERE snapshot_id = %s
+    ORDER BY source_row_number
+"""
+_READY_RECORDS_SQL = f"""
+    SELECT {_RECORD_COLUMN_SQL}
+    FROM hmda_raw.ready_hmda_record
+    WHERE snapshot_id = %s
+    ORDER BY source_row_number
+"""
 
 
 @dataclass(frozen=True, slots=True)
@@ -173,6 +235,32 @@ class PostgresRepository:
             raise RepositoryError("Không thể mở kết nối PostgreSQL") from None
         return PostgresUnitOfWork(connection)
 
+    def get_ingestion_by_key(
+        self,
+        idempotency_key: str,
+    ) -> IngestionDescriptor | None:
+        """Đọc trạng thái logical ingestion để retry không tạo run mới."""
+
+        connection = None
+        try:
+            connection = self.connection_factory()
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT ingestion_id, snapshot_id, idempotency_key, source_id, status
+                    FROM hmda_audit.ingestion_run
+                    WHERE idempotency_key = %s
+                    """,
+                    (idempotency_key,),
+                )
+                row = cursor.fetchone()
+        except psycopg.Error:
+            raise RepositoryError("Không thể đọc ingestion PostgreSQL") from None
+        finally:
+            if connection is not None:
+                connection.close()
+        return None if row is None else _ingestion_descriptor(row)
+
     def get_ready(self, snapshot_id: str) -> SnapshotDescriptor:
         connection = None
         try:
@@ -195,6 +283,89 @@ class PostgresRepository:
         if row is None:
             raise RepositoryError("Snapshot không READY hoặc không tồn tại")
         return _snapshot_descriptor(row)
+
+    def get_ready_records(self, snapshot_id: str) -> tuple[dict[str, object], ...]:
+        """Đọc record của đúng snapshot READY theo thứ tự lineage."""
+
+        connection = None
+        try:
+            connection = self.connection_factory()
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT 1 FROM hmda_audit.ready_snapshot WHERE snapshot_id = %s",
+                    (snapshot_id,),
+                )
+                if cursor.fetchone() is None:
+                    raise RepositoryError("Snapshot không READY hoặc không tồn tại")
+                cursor.execute(_READY_RECORDS_SQL, (snapshot_id,))
+                records = tuple(dict(row) for row in cursor.fetchall())
+        except psycopg.Error:
+            raise RepositoryError("Không thể đọc record READY từ PostgreSQL") from None
+        finally:
+            if connection is not None:
+                connection.close()
+        summarize_record_set(records, business_columns=HMDA_BUSINESS_COLUMNS)
+        return records
+
+    def cleanup_ready_staging(
+        self,
+        ingestion_id: str,
+        expected_row_count: int,
+    ) -> int:
+        """Dọn staging còn sót của đúng ingestion READY; retry là no-op an toàn."""
+
+        if (
+            isinstance(expected_row_count, bool)
+            or not isinstance(expected_row_count, int)
+            or expected_row_count < 1
+        ):
+            raise RepositoryError("expected_row_count phải là số nguyên dương")
+        connection = None
+        try:
+            connection = self.connection_factory()
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    """
+                    SELECT
+                        run.status,
+                        (
+                            SELECT COUNT(*)
+                            FROM hmda_staging.hmda_record AS staged
+                            WHERE staged.ingestion_id = run.ingestion_id
+                        ) AS staging_row_count
+                    FROM hmda_audit.ingestion_run AS run
+                    WHERE run.ingestion_id = %s
+                    """,
+                    (ingestion_id,),
+                )
+                row = cursor.fetchone()
+                if row is None or row["status"] != "READY":
+                    raise RepositoryError("Cleanup staging chỉ áp dụng cho ingestion READY")
+                staging_row_count = int(row["staging_row_count"])
+                if staging_row_count == 0:
+                    connection.rollback()
+                    return 0
+                if staging_row_count != expected_row_count:
+                    raise RepositoryError("Staging row_count không khớp evidence READY")
+                cursor.execute(
+                    "DELETE FROM hmda_staging.hmda_record WHERE ingestion_id = %s",
+                    (ingestion_id,),
+                )
+                if cursor.rowcount != expected_row_count:
+                    raise RepositoryError("Cleanup staging không xóa đúng số dòng dự kiến")
+            connection.commit()
+            return expected_row_count
+        except psycopg.Error:
+            if connection is not None:
+                connection.rollback()
+            raise RepositoryError("Không thể cleanup staging PostgreSQL") from None
+        except Exception:
+            if connection is not None:
+                connection.rollback()
+            raise
+        finally:
+            if connection is not None:
+                connection.close()
 
 
 class PostgresUnitOfWork:
@@ -299,6 +470,129 @@ class PostgresUnitOfWork:
         if created is None:
             raise RepositoryError("Không tạo được ingestion")
         return _ingestion_descriptor(created)
+
+    def stage_records(
+        self,
+        ingestion_id: str,
+        records: Sequence[Mapping[str, object]],
+    ) -> RecordSetSummary:
+        """COPY record vào staging và đối soát lại trước khi tiếp tục."""
+
+        self._require_staging(ingestion_id)
+        expected = summarize_record_set(
+            records, business_columns=HMDA_BUSINESS_COLUMNS
+        )
+        with self.connection.cursor() as cursor:
+            self._execute(
+                cursor,
+                "SELECT COUNT(*) AS row_count FROM hmda_staging.hmda_record "
+                "WHERE ingestion_id = %s",
+                (ingestion_id,),
+                operation="đếm record staging",
+            )
+            count_row = cursor.fetchone()
+            existing_count = int(count_row["row_count"]) if count_row else 0
+            if existing_count == 0:
+                try:
+                    with cursor.copy(_STAGING_COPY_SQL) as copy:
+                        for record in records:
+                            copy.write_row(
+                                (
+                                    ingestion_id,
+                                    *(record[column] for column in _RECORD_COLUMNS),
+                                )
+                            )
+                except psycopg.Error:
+                    raise RepositoryError("PostgreSQL không thể COPY record staging") from None
+        actual = self._summarize_query(
+            _STAGING_RECORDS_SQL,
+            (ingestion_id,),
+            operation="đọc lại record staging",
+        )
+        require_reconciled_record_sets(expected, actual)
+        return actual
+
+    def promote_records(
+        self,
+        ingestion_id: str,
+        expected: RecordSetSummary,
+    ) -> RecordSetSummary:
+        """Chuyển staging sang raw và đối soát nội dung trong cùng transaction."""
+
+        ingestion = self._require_staging(ingestion_id)
+        staged_summary = self._summarize_query(
+            _STAGING_RECORDS_SQL,
+            (ingestion_id,),
+            operation="đọc record staging trước promote",
+        )
+        require_reconciled_record_sets(expected, staged_summary)
+        with self.connection.cursor() as cursor:
+            self._execute(
+                cursor,
+                _PROMOTE_SQL,
+                (ingestion_id,),
+                operation="promote record sang raw",
+            )
+        raw_summary = self._summarize_query(
+            _RAW_RECORDS_SQL,
+            (ingestion.snapshot_id,),
+            operation="đọc lại record raw",
+        )
+        require_reconciled_record_sets(expected, raw_summary)
+        return raw_summary
+
+    def read_promoted_records(
+        self, ingestion_id: str
+    ) -> tuple[dict[str, object], ...]:
+        """Đọc record raw của ingestion STAGING để tạo file snapshot trước publish."""
+
+        ingestion = self._require_staging(ingestion_id)
+        with self.connection.cursor() as cursor:
+            self._execute(
+                cursor,
+                _RAW_RECORDS_SQL,
+                (ingestion.snapshot_id,),
+                operation="đọc record raw cho snapshot",
+            )
+            records = tuple(dict(row) for row in cursor.fetchall())
+        summarize_record_set(records, business_columns=HMDA_BUSINESS_COLUMNS)
+        return records
+
+    def clear_staged_records(
+        self,
+        ingestion_id: str,
+        expected_row_count: int,
+    ) -> int:
+        """Xóa staging sau đối soát, trong cùng transaction với publish READY."""
+
+        self._require_staging(ingestion_id)
+        if (
+            isinstance(expected_row_count, bool)
+            or not isinstance(expected_row_count, int)
+            or expected_row_count < 1
+        ):
+            raise RepositoryError("expected_row_count phải là số nguyên dương")
+        with self.connection.cursor() as cursor:
+            self._execute(
+                cursor,
+                "SELECT COUNT(*) AS row_count FROM hmda_staging.hmda_record "
+                "WHERE ingestion_id = %s",
+                (ingestion_id,),
+                operation="đếm record staging trước cleanup",
+            )
+            row = cursor.fetchone()
+            actual_count = int(row["row_count"]) if row else 0
+            if actual_count != expected_row_count:
+                raise RepositoryError("Staging row_count không khớp trước cleanup")
+            self._execute(
+                cursor,
+                "DELETE FROM hmda_staging.hmda_record WHERE ingestion_id = %s",
+                (ingestion_id,),
+                operation="cleanup record staging",
+            )
+            if cursor.rowcount != expected_row_count:
+                raise RepositoryError("Cleanup staging không xóa đúng số dòng dự kiến")
+        return expected_row_count
 
     def save_quality_result(
         self, ingestion_id: str, validation: ValidationSummary
@@ -426,10 +720,24 @@ class PostgresUnitOfWork:
             raise RepositoryError("READY snapshot không khớp ingestion identity")
 
         with self.connection.cursor() as cursor:
+            expected_row_count = snapshot.metadata.get("row_count")
+            if (
+                isinstance(expected_row_count, bool)
+                or not isinstance(expected_row_count, int)
+                or expected_row_count < 1
+            ):
+                raise RepositoryError("READY snapshot phải có row_count dương")
             self._execute(
                 cursor,
                 """
-                SELECT quality.is_valid, staged.status
+                SELECT
+                    quality.is_valid,
+                    staged.status,
+                    (
+                        SELECT COUNT(*)
+                        FROM hmda_raw.hmda_record AS records
+                        WHERE records.snapshot_id = staged.snapshot_id
+                    ) AS raw_row_count
                 FROM hmda_audit.quality_result AS quality
                 JOIN hmda_audit.snapshot AS staged
                     ON staged.ingestion_id = quality.ingestion_id
@@ -443,6 +751,8 @@ class PostgresUnitOfWork:
                 raise RepositoryError("Quality ERROR hoặc thiếu quality result chặn publish")
             if state["status"] != "STAGING":
                 raise RepositoryError("Chưa có staged snapshot hợp lệ")
+            if int(state["raw_row_count"]) != expected_row_count:
+                raise RepositoryError("Raw row_count không khớp filesystem snapshot")
 
             self._execute(
                 cursor,
@@ -510,6 +820,28 @@ class PostgresUnitOfWork:
     def _require_open(self) -> None:
         if self.closed:
             raise RepositoryError("Unit of work không còn mở")
+
+    def _summarize_query(
+        self,
+        statement: str,
+        params: tuple[Any, ...],
+        *,
+        operation: str,
+    ) -> RecordSetSummary:
+        """Stream record từ server để đối soát không nhân đôi toàn bộ dataset."""
+
+        self._require_open()
+        try:
+            cursor_name = f"hmda_reconcile_{uuid4().hex}"
+            with self.connection.cursor(name=cursor_name) as cursor:
+                cursor.itersize = 10_000
+                cursor.execute(statement, params)
+                return summarize_record_set(
+                    cursor,
+                    business_columns=HMDA_BUSINESS_COLUMNS,
+                )
+        except psycopg.Error:
+            raise RepositoryError(f"PostgreSQL không thể {operation}") from None
 
     def _execute(
         self,

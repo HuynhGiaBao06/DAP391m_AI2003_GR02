@@ -47,7 +47,21 @@ def test_repository_configs_load_without_real_database_credentials() -> None:
     bundle = ConfigLoader().load(environment={})
 
     assert bundle.get("project.name") == "hmda-project"
-    assert bundle.get("database.status") == "configured_pending_db_verification"
+    assert bundle.get("database.status") == (
+        "target_schema_and_acl_deployed_verified"
+    )
+    assert bundle.get("database.target.database") == "neondb"
+    assert bundle.get("database.target.connectivity_status") == (
+        "VERIFIED_READ_ONLY_2026_09_13"
+    )
+    assert bundle.get("database.target.ddl_privilege_status") == (
+        "VERIFIED_CREATE_SCHEMA_AND_ROLE_2026_09_13"
+    )
+    assert bundle.get("database.target.schema_deployment_status") == (
+        "DEPLOYED_VERIFIED_2026_09_13"
+    )
+    assert bundle.get("database.target.local_snapshot_root") == "data/snapshots/eda"
+    assert bundle.get("database.connection.database") == "neondb"
     assert bundle.get("database.connection.password") is None
     assert bundle.get("database.connection.sslmode") == "require"
     assert bundle.get("database.connection.channel_binding") == "require"

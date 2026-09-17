@@ -1,6 +1,6 @@
 # Dữ liệu local
 
-PostgreSQL là nguồn dữ liệu dùng chung cho pipeline; `data/` giữ tệp nguồn và bản xuất snapshot phục vụ tái lập/local analysis. File tạm `raw/state_NY_filter.csv` là bản filtered đã map `action_taken` từ mã HMDA `1/2/3` sang mã nội bộ `0/1/2`; mapping này đã được người dùng xác nhận. File đã được TASK-021 đọc toàn bộ để ghi hash/schema/token nhưng chưa được đăng ký làm raw source chuẩn vì URL/version nguồn còn thiếu và `county_code` đang sai định dạng FIPS. Framework snapshot/atomic export và repository contract đã có unit evidence bằng fixture tại TASK-019/TASK-020; hiện chưa có kết nối PostgreSQL, `snapshot_id` hoặc snapshot `READY` thật.
+PostgreSQL là nguồn dữ liệu dùng chung cho pipeline; `data/` giữ tệp nguồn và bản xuất snapshot phục vụ tái lập/local analysis. `raw/state_NY_filter.csv` là local derived asset đã lọc 18 cột và map `action_taken` từ mã HMDA `1/2/3` sang mã nội bộ `0/1/2`; BaoHG xác nhận mapping, quyền quản trị và ngày 2026-09-13. TASK-021 đã đăng ký file cho transport bằng internal version/checksum và chạy 25 quality rules: 0 lỗi chặn, 3 cảnh báo. `county_code` chưa đạt FIPS nên file chưa sẵn sàng cho phân tích county. Block 3C đã round-trip đủ 293.301 record qua `neondb`, tạo snapshot READY `hmda-2024-ny-ab0bb683a84aabbbbcc09afc` với `data.csv`, `manifest.json`, `quality_report.json` và đối soát checksum; TASK-024 đã review và đóng G2 tối giản ngày 2026-09-14.
 
 ## Cấu trúc local
 
@@ -40,7 +40,7 @@ Quality report ghi `rule_id`, tầng dữ liệu, severity `ERROR/WARNING`, số
 
 Không tự xóa outlier, impute, đổi NA/Exempt hoặc sửa category để vượt gate. Assert hỗ trợ kiểm invariant trong test/notebook; validation và exception mới là hàng rào của pipeline/API.
 
-Tối thiểu cần kiểm: header/schema; parse/token đặc biệt; target/cohort; uniqueness/khóa ngoại; số dòng qua từng bước; checksum; join một-một; probability/label mapping ở bảng predictions; idempotency, rollback, retry và hai ingestion chạy đồng thời.
+Tối thiểu cần kiểm: header/schema; parse/token đặc biệt; target/cohort; uniqueness/khóa ngoại; số dòng qua từng bước; checksum; join một-một; probability/label mapping ở bảng predictions; idempotency và rollback/retry cơ bản. Theo DEC-011, concurrency stress hai ingestion được hoãn khỏi G2 tối giản, không được mô tả là đã đạt.
 
 ## Ba loại snapshot
 

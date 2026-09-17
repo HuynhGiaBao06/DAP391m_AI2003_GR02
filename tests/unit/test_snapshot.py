@@ -16,6 +16,7 @@ from hmda.data.snapshot import (
     SnapshotSerialization,
     create_staging_manifest,
 )
+from hmda.data.validator import QualityIssue, QualitySeverity
 
 
 def _batch(*, source_id: str = "fixture-source", checksum: str = "a" * 64):
@@ -113,16 +114,24 @@ def test_atomic_export_writes_verified_ready_snapshot_and_retry_is_idempotent(
     saved_manifest = json.loads(
         (snapshot_dir / "manifest.json").read_text(encoding="utf-8")
     )
+    saved_quality = json.loads(
+        (snapshot_dir / "quality_report.json").read_text(encoding="utf-8")
+    )
     assert first.status is SnapshotStatus.READY
     assert retry == first
     assert sorted(path.name for path in snapshot_dir.iterdir()) == [
         "data.csv",
         "manifest.json",
+        "quality_report.json",
     ]
     assert saved_manifest["status"] == "READY"
     assert saved_manifest["row_count"] == 2
     assert saved_manifest["quality_warning_count"] == 1
     assert saved_manifest["data_checksum"]
+    assert saved_manifest["quality_checksum"]
+    assert saved_quality["is_valid"] is True
+    assert saved_quality["error_count"] == 0
+    assert saved_quality["warning_count"] == 1
     assert saved_manifest["encoding"] == "utf-8"
     assert saved_manifest["null_token"] == "<NULL>"
     assert len(list(tmp_path.iterdir())) == 1
@@ -145,6 +154,24 @@ def test_retry_reconciles_content_instead_of_trusting_identity_only(tmp_path) ->
             changed,
             _validation(),
             _manifest(changed, _validation()),
+            _serialization(),
+        )
+
+
+def test_retry_rejects_changed_quality_counts(tmp_path) -> None:
+    batch = _batch()
+    exporter = AtomicSnapshotExporter(tmp_path)
+    exporter.export(batch, _validation(), _manifest(), _serialization())
+    changed_validation = ValidationSummary(
+        is_valid=True,
+        metadata={"error_count": 0, "warning_count": 2},
+    )
+
+    with pytest.raises(SnapshotError, match="identity READY khác"):
+        exporter.export(
+            batch,
+            changed_validation,
+            _manifest(validation=changed_validation),
             _serialization(),
         )
 
@@ -192,6 +219,93 @@ def test_ready_reader_rejects_checksum_mismatch(tmp_path) -> None:
 
     with pytest.raises(SnapshotError, match="Checksum"):
         exporter.load_ready("fixture-snapshot")
+
+
+def test_ready_reader_rejects_quality_report_checksum_mismatch(tmp_path) -> None:
+    exporter = AtomicSnapshotExporter(tmp_path)
+    exporter.export(_batch(), _validation(), _manifest(), _serialization())
+    quality_path = tmp_path / "fixture-snapshot" / "quality_report.json"
+    quality_path.write_bytes(quality_path.read_bytes() + b"tampered")
+
+    with pytest.raises(SnapshotError, match="quality report"):
+        exporter.load_ready("fixture-snapshot")
+
+
+def test_ready_snapshot_reconciles_against_expected_records_streaming(tmp_path) -> None:
+    exporter = AtomicSnapshotExporter(tmp_path)
+    batch = _batch()
+    exporter.export(batch, _validation(), _manifest(), _serialization())
+
+    manifest = exporter.require_reconciled_ready(
+        "fixture-snapshot",
+        batch.payload,
+    )
+
+    assert manifest.status is SnapshotStatus.READY
+    changed = (
+        batch.payload[0],
+        {**batch.payload[1], "note": "changed"},
+    )
+    with pytest.raises(SnapshotError, match="theo record_id"):
+        exporter.require_reconciled_ready("fixture-snapshot", changed)
+
+
+def test_quality_report_redacts_sensitive_metadata(tmp_path) -> None:
+    validation = ValidationSummary(
+        is_valid=True,
+        metadata={
+            "error_count": 0,
+            "warning_count": 0,
+            "connection": {"password": "must-not-be-persisted"},
+            "observed_tokens": ["NA", "Exempt", ""],
+        },
+    )
+    exporter = AtomicSnapshotExporter(tmp_path)
+    exporter.export(
+        _batch(),
+        validation,
+        _manifest(validation=validation),
+        _serialization(),
+    )
+    report_text = (
+        tmp_path / "fixture-snapshot" / "quality_report.json"
+    ).read_text(encoding="utf-8")
+
+    assert "must-not-be-persisted" not in report_text
+    assert "***REDACTED***" in report_text
+    assert '"observed_tokens":["NA","Exempt",""]' in report_text
+
+
+def test_quality_report_serializes_structured_quality_issues(tmp_path) -> None:
+    validation = ValidationSummary(
+        is_valid=True,
+        issues=(
+            QualityIssue(
+                rule_id="FIXTURE_WARNING",
+                layer="raw",
+                severity=QualitySeverity.WARNING,
+                affected_count=1,
+                denominator=2,
+                sample_ids=("r1",),
+            ),
+        ),
+        metadata={"error_count": 0, "warning_count": 1},
+    )
+    exporter = AtomicSnapshotExporter(tmp_path)
+    exporter.export(
+        _batch(),
+        validation,
+        _manifest(validation=validation),
+        _serialization(),
+    )
+    report = json.loads(
+        (tmp_path / "fixture-snapshot" / "quality_report.json").read_text(
+            encoding="utf-8"
+        )
+    )
+
+    assert report["issues"][0]["rule_id"] == "FIXTURE_WARNING"
+    assert report["issues"][0]["severity"] == "WARNING"
 
 
 def test_snapshot_id_rejects_path_traversal() -> None:

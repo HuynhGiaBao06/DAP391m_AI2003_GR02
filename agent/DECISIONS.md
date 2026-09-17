@@ -73,6 +73,28 @@ Phạm vi chia sẻ hồ sơ agent của quyết định này được mở rộ
 - Phạm vi tài liệu: Project Master v1.2, Project Planning v1.2 và Research Plan v2.2. API/Web vẫn là deliverable triển khai trong Master nhưng nằm ngoài nội dung nghiên cứu RQ1–RQ3.
 - Bằng chứng: CFPB Regulation C official interpretations; OCC Comptroller's Handbook, Mortgage Banking, Appendix B; CFPB Intent to Proceed; TASK-025.
 
+## DEC-011 Phạm vi nghiệm thu Phase 2/G2 tối giản
+
+- Ngày: 2026-09-13. Trạng thái: ACCEPTED/IMPLEMENTED trong đặc tả Phase 2 theo yêu cầu trực tiếp của người dùng.
+- Mục tiêu bắt buộc của G2: thực hiện một round-trip thật local → PostgreSQL → local; đối soát số dòng, 18 business columns, kiểu/token raw, `record_id` và nội dung/checksum; lưu quality artifact và manifest; chỉ công bố snapshot `READY` khi transport integrity đạt.
+- Source boundary: TASK-021 được phép `DONE` độc lập khi owner-attested local source identity, checksum, loader và transport-quality contract đạt. Trạng thái này không chứng minh ingestion, DB reconciliation, quality artifact, snapshot thật hoặc G2 đã đạt.
+- Control giữ lại: transaction và rollback giao dịch khi upload lỗi; duplicate/idempotency protection cơ bản; run lỗi không được reader thấy như `READY`.
+- Phần hoãn khỏi G2 hiện tại: concurrency stress giữa nhiều ingestion, restore drill, reviewer độc lập và generic pipeline cho nhiều bảng. Các phần này không được mô tả là đã kiểm và issue vận hành rộng hơn vẫn có thể giữ `OPEN`.
+- Quan hệ với Project Master: đây là ngoại lệ vận hành có chủ đích cho G2 tối giản, không sửa hoặc ghi đè DOCX nguồn. Các yêu cầu cốt lõi về source, quality, reconciliation và snapshot `READY` vẫn giữ nguyên.
+- Giới hạn quyền: quyết định này chỉ đồng bộ phạm vi và trạng thái; không tự cấp quyền sửa pipeline/SQL, kết nối hoặc ghi DB, chạy ingestion, tạo/công bố snapshot, commit hoặc push.
+- Áp dụng: TASK-016–TASK-024 liên quan, `PROJECT_MASTER_CONTEXT.md`, `PROJECT_STATE.md`, task index, TECH-001 và PEND-04.
+
+## DEC-012 PostgreSQL đích và snapshot root cho TASK-023
+
+- Ngày: 2026-09-13. Trạng thái: ACCEPTED/IMPLEMENTED; target đã deploy và round-trip được TASK-024 nghiệm thu ngày 2026-09-14.
+- Database đích: `neondb`, là tên database thực tế được cấp trên endpoint Neon. Tên nhận diện dự kiến trước đó được thay thế bởi xác nhận người dùng ngày 2026-09-13.
+- Cấu trúc dùng lại từ migration TASK-022, không tạo contract table mới: staging `hmda_staging.hmda_record`, raw `hmda_raw.hmda_record`, audit trong `hmda_audit`, reader dùng `hmda_raw.ready_hmda_record` và `hmda_audit.ready_snapshot`.
+- Snapshot local: `data/snapshots/eda/<snapshot_id>/`, gồm `data.csv`, manifest và quality report theo hợp đồng snapshot hiện hành.
+- Quyền dự kiến: BaoHG là data admin/writer; tài khoản thành viên được phép đọc thông qua role/view `hmda_reader`. “Cho phép tất cả đọc” nghĩa là mọi tài khoản dự án được cấp quyền, không cấp quyền cho PostgreSQL `PUBLIC` hoặc truy cập ẩn danh.
+- Trạng thái kết nối: đã xác minh read-only ngày 2026-09-13 bằng config local đã che secret; kết nối thành công tới `neondb` với PostgreSQL 18.6 và đúng user cấu hình. Lỗi `ENOTFOUND base`, password cũ và hai tên database dự kiến không còn là trạng thái hiện hành.
+- DDL boundary và triển khai: tài khoản hiện hành có database `CREATE` và `CREATEROLE`. Theo quyền người dùng giao cho Bước 3A ngày 2026-09-13, migration forward `001`/`002` đã được áp dụng trong một transaction trên `neondb`; ba schema, các table/view và role HMDA đã được kiểm bằng truy vấn read-only. Chạy lại migration runner không áp dụng thêm version nào. Block 3B ghi fixture 2 dòng trong transaction rồi rollback; Block 3C ngày 2026-09-14 persist một ingestion/snapshot READY đủ 293.301 dòng và snapshot local theo đúng contract này. TASK-024 đã review và đóng G2 tối giản cùng ngày.
+- Áp dụng: `configs/database.yaml`, TASK-016/023, `PROJECT_STATE.md`, task index, PEND-04, `configs/README.md`, `data/README.md` và `sql/README.md`.
+
 ## Các quyết định còn chờ
 
 Đây là câu hỏi điều phối, không phải thông số hoặc phương án đã chọn. Tên owner và ngày cụ thể chưa phân công; TASK-005 thu thập xác nhận thật, không tự điền.
@@ -81,7 +103,7 @@ Phạm vi chia sẻ hồ sơ agent của quyết định này được mở rộ
 | --- | --- | --- | --- | --- |
 | PEND-01 | Tên owner/reviewer và hạn cho các đầu việc | PENDING | G0 | TASK-005 |
 | PEND-02 | Lịch học phần, AI services và yêu cầu RQ mới | PENDING | Phạm vi sản phẩm trước G0; xác nhận với nhóm/giảng viên qua người dùng | TASK-005, TASK-007 |
-| PEND-04 | Nguồn/PostgreSQL, quyền truy cập và nơi phân phối snapshot/artifact | PENDING | Trước nhập dữ liệu Phase 2/G2 | TASK-021–023 triển khai theo từng đầu vào; TASK-005 chỉ điều phối xác nhận nhóm |
+| PEND-04 | Nơi phân phối snapshot/artifact cho nhóm; source local, database `neondb`, local snapshot root, kết nối, quyền DDL, migrations và G2 local round-trip đã giải quyết | PENDING | Trước khi phân phối cho nhóm; không phủ định G2 local đã nghiệm thu | TASK-005 điều phối nơi phân phối; snapshot local hiện hành theo DEC-012 |
 | PEND-05 | Phương án preprocessing và feature đủ điều kiện | PENDING | Sau phân tích/kiểm tra, trước train chính thức G4 | TASK-004 chỉ chuẩn bị câu hỏi |
 | PEND-06 | Chi tiết công thức SL, mẫu, seed và ngưỡng fairness còn mở | PENDING | Trước thực nghiệm tương ứng | TASK-006 chuẩn bị đặc tả |
 | PEND-07 | Frontend/hosting và mục tiêu hiệu năng đo được | PENDING | Trước tích hợp/nghiệm thu Phase 7 | TASK-007 chuẩn bị hợp đồng |

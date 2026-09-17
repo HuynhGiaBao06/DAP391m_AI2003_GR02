@@ -86,10 +86,10 @@ def test_readback_compares_content_by_record_id_not_only_file_hash(
     case = _case(({"record_id": "r1", "value": "original"},), serialization)
 
     def mismatched_readback(path, config):
-        return ({"record_id": "r1", "value": "changed"},)
+        yield {"record_id": "r1", "value": "changed"}
 
     monkeypatch.setattr(
-        AtomicSnapshotExporter, "_read_csv", staticmethod(mismatched_readback)
+        AtomicSnapshotExporter, "_iter_csv", staticmethod(mismatched_readback)
     )
     with pytest.raises(SnapshotError, match="theo record_id"):
         AtomicSnapshotExporter(tmp_path).export(*case, serialization)

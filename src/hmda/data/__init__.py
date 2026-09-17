@@ -10,6 +10,7 @@ from hmda.data.contracts import (
 )
 from hmda.data.loader import CSVBytesLoader
 from hmda.data.postgres import (
+    HMDA_BUSINESS_COLUMNS,
     PostgresMigrationRunner,
     PostgresRepository,
     PostgresSettings,
@@ -22,8 +23,11 @@ from hmda.data.repository import (
     IngestionDescriptor,
     IngestionRequest,
     IngestionStatus,
+    RecordSetSummary,
     RepositoryUnitOfWork,
     make_idempotency_key,
+    require_reconciled_record_sets,
+    summarize_record_set,
 )
 from hmda.data.snapshot import (
     AtomicSnapshotExporter,
@@ -33,7 +37,12 @@ from hmda.data.snapshot import (
     SnapshotSerialization,
     create_staging_manifest,
 )
-from hmda.data.source_identity import SourceIdentity, identify_source, make_record_id
+from hmda.data.source_identity import (
+    SourceIdentity,
+    identify_source,
+    make_record_id,
+    require_registered_source,
+)
 from hmda.data.validator import (
     ConfigurableDataValidator,
     QualityIssue,
@@ -50,6 +59,7 @@ __all__ = [
     "ValidationSummary",
     "CSVBytesLoader",
     "DataRepository",
+    "HMDA_BUSINESS_COLUMNS",
     "PostgresMigrationRunner",
     "PostgresRepository",
     "PostgresSettings",
@@ -61,6 +71,7 @@ __all__ = [
     "IngestionStatus",
     "QualityIssue",
     "QualitySeverity",
+    "RecordSetSummary",
     "RepositoryUnitOfWork",
     "AtomicSnapshotExporter",
     "AtomicSnapshotManager",
@@ -70,8 +81,11 @@ __all__ = [
     "SourceIdentity",
     "identify_source",
     "make_record_id",
+    "require_registered_source",
+    "require_reconciled_record_sets",
     "make_idempotency_key",
     "make_connection_factory",
     "create_staging_manifest",
     "require_publishable",
+    "summarize_record_set",
 ]
